@@ -1,0 +1,16 @@
+{
+  "name": "nurdin-adna-svadba",
+  "version": "1.0.0",
+  "description": "Web aplikacija za upload i pregled slika sa svadbe Nurdin i Adna.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [
+    "svadba",
+    "galerija",
+    "upload"
+  ],
+  "author": "",
+  "license": "UNLICENSED"
+}

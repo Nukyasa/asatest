@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="bs">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Admin login | Nurdin & Adna</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body class="admin-page">
+    <main class="admin-shell login-shell">
+      <form class="admin-login-card" id="admin-login-form">
+        <p class="kicker">Admin pristup</p>
+        <h1>Nurdin & Adna</h1>
+        <label>
+          Lozinka
+          <input name="password" type="password" autocomplete="current-password" required />
+        </label>
+        <button type="submit">Uđi u admin</button>
+        <p class="status" id="admin-login-status" role="status" aria-live="polite"></p>
+        <a href="/">Nazad na galeriju</a>
+      </form>
+    </main>
+    <script src="/admin-login.js"></script>
+  </body>
+</html>

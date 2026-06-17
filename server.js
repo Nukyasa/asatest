@@ -1,0 +1,837 @@
+const http = require("http");
+const fs = require("fs");
+const path = require("path");
+const crypto = require("crypto");
+
+const PORT = Number(process.env.PORT || 5177);
+const ROOT = __dirname;
+const PUBLIC_DIR = path.join(ROOT, "public");
+const UPLOAD_DIR = path.join(ROOT, "uploads");
+const ORIGINAL_UPLOAD_DIR = path.join(UPLOAD_DIR, "originals");
+const OPTIMIZED_UPLOAD_DIR = path.join(UPLOAD_DIR, "optimized");
+const DATA_DIR = path.join(ROOT, "data");
+const BACKUP_DIR = path.join(ROOT, "backups");
+const PHOTOS_FILE = path.join(DATA_DIR, "photos.json");
+const MAX_UPLOAD_BYTES = 60 * 1024 * 1024;
+const SUPABASE_URL = process.env.SUPABASE_URL || "";
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+const SUPABASE_BUCKET = process.env.SUPABASE_BUCKET || "wedding-photos";
+const SUPABASE_PHOTOS_TABLE = process.env.SUPABASE_PHOTOS_TABLE || "wedding_photos";
+const HAS_SUPABASE = Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY);
+const STORAGE_MODE = process.env.STORAGE_MODE || (HAS_SUPABASE ? "supabase" : "local");
+const CLOUD_PUBLIC_URL = process.env.CLOUD_PUBLIC_URL || "";
+const PUBLIC_APP_URL = process.env.PUBLIC_APP_URL || "";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "";
+const ADMIN_SESSION_SECRET = process.env.ADMIN_SESSION_SECRET || crypto.randomBytes(32).toString("hex");
+const CATEGORIES = new Set(["Pripreme", "Ceremonija", "Prvi ples", "Gosti", "Party"]);
+
+const MIME_TYPES = {
+  ".html": "text/html; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".js": "application/javascript; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".webp": "image/webp",
+  ".gif": "image/gif",
+  ".svg": "image/svg+xml"
+};
+
+const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+const EXT_BY_MIME = {
+  "image/jpeg": ".jpg",
+  "image/png": ".png",
+  "image/webp": ".webp",
+  "image/gif": ".gif"
+};
+
+fs.mkdirSync(PUBLIC_DIR, { recursive: true });
+fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+fs.mkdirSync(ORIGINAL_UPLOAD_DIR, { recursive: true });
+fs.mkdirSync(OPTIMIZED_UPLOAD_DIR, { recursive: true });
+fs.mkdirSync(DATA_DIR, { recursive: true });
+fs.mkdirSync(BACKUP_DIR, { recursive: true });
+if (!fs.existsSync(PHOTOS_FILE)) {
+  fs.writeFileSync(PHOTOS_FILE, "[]\n");
+}
+
+function sendJson(res, statusCode, payload) {
+  const body = JSON.stringify(payload);
+  res.writeHead(statusCode, {
+    "Content-Type": "application/json; charset=utf-8",
+    "Content-Length": Buffer.byteLength(body)
+  });
+  res.end(body);
+}
+
+function parseCookies(req) {
+  const header = req.headers.cookie || "";
+  return Object.fromEntries(
+    header
+      .split(";")
+      .map((entry) => entry.trim())
+      .filter(Boolean)
+      .map((entry) => {
+        const index = entry.indexOf("=");
+        return index === -1 ? [entry, ""] : [entry.slice(0, index), decodeURIComponent(entry.slice(index + 1))];
+      })
+  );
+}
+
+function adminToken() {
+  return crypto.createHash("sha256").update(`${ADMIN_PASSWORD}:${ADMIN_SESSION_SECRET}`).digest("hex");
+}
+
+function isAdminAuthenticated(req) {
+  if (!ADMIN_PASSWORD) return true;
+  return parseCookies(req).wedding_admin === adminToken();
+}
+
+function sendUnauthorized(res) {
+  sendJson(res, 401, { error: "Admin pristup zahtijeva login." });
+}
+
+function sendBuffer(res, statusCode, payload, headers) {
+  res.writeHead(statusCode, {
+    "Content-Length": payload.length,
+    ...headers
+  });
+  res.end(payload);
+}
+
+function sendError(res, statusCode, message) {
+  sendJson(res, statusCode, { error: message });
+}
+
+function normalizePhoto(photo) {
+  return {
+    likes: 0,
+    category: "Gosti",
+    message: "",
+    hidden: false,
+    optimizedUrl: photo.url,
+    originalUrl: photo.url,
+    ...photo
+  };
+}
+
+function readLocalPhotos() {
+  try {
+    const parsed = JSON.parse(fs.readFileSync(PHOTOS_FILE, "utf8"));
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map(normalizePhoto);
+  } catch {
+    return [];
+  }
+}
+
+function writeLocalPhotos(photos) {
+  fs.writeFileSync(PHOTOS_FILE, `${JSON.stringify(photos, null, 2)}\n`);
+}
+
+async function supabaseRest(pathname, options = {}) {
+  const response = await fetch(`${SUPABASE_URL.replace(/\/$/, "")}/rest/v1/${pathname}`, {
+    ...options,
+    headers: {
+      apikey: SUPABASE_SERVICE_ROLE_KEY,
+      authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      "content-type": "application/json",
+      ...(options.headers || {})
+    }
+  });
+
+  if (!response.ok) {
+    const detail = await response.text().catch(() => "");
+    throw new Error(`Supabase baza nije odgovorila: ${response.status} ${detail}`);
+  }
+
+  if (response.status === 204) return null;
+  return response.json();
+}
+
+async function readPhotos() {
+  if (!HAS_SUPABASE) return readLocalPhotos();
+  const rows = await supabaseRest(`${SUPABASE_PHOTOS_TABLE}?select=photo&order=created_at.desc`);
+  return rows.map((row) => normalizePhoto(row.photo || {}));
+}
+
+async function insertPhoto(photo) {
+  if (!HAS_SUPABASE) {
+    const photos = readLocalPhotos();
+    photos.unshift(photo);
+    writeLocalPhotos(photos);
+    return photo;
+  }
+
+  await supabaseRest(SUPABASE_PHOTOS_TABLE, {
+    method: "POST",
+    headers: { prefer: "return=minimal" },
+    body: JSON.stringify({
+      id: photo.id,
+      photo,
+      created_at: photo.uploadedAt
+    })
+  });
+  return photo;
+}
+
+async function replacePhoto(photo) {
+  if (!HAS_SUPABASE) {
+    const photos = readLocalPhotos().map((entry) => (entry.id === photo.id ? photo : entry));
+    writeLocalPhotos(photos);
+    return photo;
+  }
+
+  await supabaseRest(`${SUPABASE_PHOTOS_TABLE}?id=eq.${encodeURIComponent(photo.id)}`, {
+    method: "PATCH",
+    headers: { prefer: "return=minimal" },
+    body: JSON.stringify({ photo })
+  });
+  return photo;
+}
+
+async function removePhotoRow(id) {
+  if (!HAS_SUPABASE) {
+    writeLocalPhotos(readLocalPhotos().filter((entry) => entry.id !== id));
+    return;
+  }
+
+  await supabaseRest(`${SUPABASE_PHOTOS_TABLE}?id=eq.${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    headers: { prefer: "return=minimal" }
+  });
+}
+
+function safePublicPath(baseDir, urlPath) {
+  const decoded = decodeURIComponent(urlPath);
+  const normalized = path.normalize(decoded).replace(/^(\.\.[/\\])+/, "");
+  const filePath = path.join(baseDir, normalized);
+  return filePath.startsWith(baseDir) ? filePath : null;
+}
+
+function serveFile(res, filePath) {
+  fs.stat(filePath, (error, stat) => {
+    if (error || !stat.isFile()) {
+      sendError(res, 404, "Fajl nije pronadjen.");
+      return;
+    }
+
+    const extension = path.extname(filePath).toLowerCase();
+    const contentType = MIME_TYPES[extension] || "application/octet-stream";
+    res.writeHead(200, {
+      "Content-Type": contentType,
+      "Content-Length": stat.size,
+      "Cache-Control": filePath.includes(`${path.sep}uploads${path.sep}`)
+        ? "public, max-age=31536000, immutable"
+        : "no-cache"
+    });
+    fs.createReadStream(filePath).pipe(res);
+  });
+}
+
+function collectRequestBody(req) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    let size = 0;
+
+    req.on("data", (chunk) => {
+      size += chunk.length;
+      if (size > MAX_UPLOAD_BYTES) {
+        reject(new Error("Slika je prevelika. Maksimalna velicina je 60 MB."));
+        req.destroy();
+        return;
+      }
+      chunks.push(chunk);
+    });
+
+    req.on("end", () => resolve(Buffer.concat(chunks)));
+    req.on("error", reject);
+  });
+}
+
+function parseMultipart(buffer, boundary) {
+  const boundaryBuffer = Buffer.from(`--${boundary}`);
+  const parts = [];
+  let position = buffer.indexOf(boundaryBuffer);
+
+  while (position !== -1) {
+    let nextPosition = buffer.indexOf(boundaryBuffer, position + boundaryBuffer.length);
+    if (nextPosition === -1) break;
+
+    let part = buffer.slice(position + boundaryBuffer.length, nextPosition);
+    if (part.slice(0, 2).toString() === "\r\n") part = part.slice(2);
+    if (part.slice(-2).toString() === "\r\n") part = part.slice(0, -2);
+
+    const separator = part.indexOf(Buffer.from("\r\n\r\n"));
+    if (separator !== -1) {
+      const rawHeaders = part.slice(0, separator).toString("utf8");
+      const content = part.slice(separator + 4);
+      const headers = {};
+      rawHeaders.split("\r\n").forEach((line) => {
+        const index = line.indexOf(":");
+        if (index > -1) {
+          headers[line.slice(0, index).trim().toLowerCase()] = line.slice(index + 1).trim();
+        }
+      });
+      parts.push({ headers, content });
+    }
+
+    position = nextPosition;
+  }
+
+  return parts;
+}
+
+function getDispositionValue(disposition, key) {
+  const match = new RegExp(`${key}="([^"]*)"`).exec(disposition || "");
+  return match ? match[1] : "";
+}
+
+function getTextPart(parts, name, maxLength) {
+  const part = parts.find((entry) => {
+    const disposition = entry.headers["content-disposition"] || "";
+    return getDispositionValue(disposition, "name") === name;
+  });
+  return part ? part.content.toString("utf8").trim().slice(0, maxLength) : "";
+}
+
+function findPart(parts, name) {
+  return parts.find((entry) => {
+    const disposition = entry.headers["content-disposition"] || "";
+    return getDispositionValue(disposition, "name") === name;
+  });
+}
+
+function normalizeCategory(value) {
+  return CATEGORIES.has(value) ? value : "Gosti";
+}
+
+function getPhotoFilename(photo) {
+  try {
+    return path.basename(new URL(photo.url, "http://localhost").pathname);
+  } catch {
+    return "";
+  }
+}
+
+function getUrlPathname(fileUrl) {
+  try {
+    return decodeURIComponent(new URL(fileUrl, "http://localhost").pathname);
+  } catch {
+    return "";
+  }
+}
+
+function getLocalUploadPath(fileUrl) {
+  const pathname = getUrlPathname(fileUrl);
+  if (!pathname.startsWith("/uploads/")) return null;
+  return safePublicPath(UPLOAD_DIR, pathname.replace("/uploads/", ""));
+}
+
+function getExtensionFromMime(mimeType, fallbackName) {
+  return EXT_BY_MIME[mimeType] || path.extname(fallbackName || "").toLowerCase() || ".jpg";
+}
+
+function supabasePublicUrl(objectPath) {
+  const base = CLOUD_PUBLIC_URL || `${SUPABASE_URL.replace(/\/$/, "")}/storage/v1/object/public/${SUPABASE_BUCKET}`;
+  return `${base.replace(/\/$/, "")}/${objectPath}`;
+}
+
+async function uploadToSupabase(objectPath, content, contentType) {
+  const endpoint = `${SUPABASE_URL.replace(/\/$/, "")}/storage/v1/object/${SUPABASE_BUCKET}/${objectPath}`;
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_SERVICE_ROLE_KEY,
+      authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      "cache-control": "3600",
+      "content-type": contentType,
+      "x-upsert": "false"
+    },
+    body: content
+  });
+
+  if (!response.ok) {
+    const detail = await response.text().catch(() => "");
+    throw new Error(`Supabase upload nije uspio: ${response.status} ${detail}`);
+  }
+
+  return supabasePublicUrl(objectPath);
+}
+
+async function saveUploadAsset({ id, kind, content, contentType, originalName }) {
+  const extension = getExtensionFromMime(contentType, originalName);
+  const filename = `${Date.now()}-${id}-${kind}${extension}`;
+
+  if (STORAGE_MODE === "supabase") {
+    if (!HAS_SUPABASE) {
+      throw new Error("Supabase nije konfigurisan. Nedostaju SUPABASE_URL ili SUPABASE_SERVICE_ROLE_KEY.");
+    }
+    const objectPath = `${kind}/${filename}`;
+    return {
+      url: await uploadToSupabase(objectPath, content, contentType),
+      objectPath,
+      filename,
+      storage: "supabase"
+    };
+  }
+
+  const directory = kind === "original" ? ORIGINAL_UPLOAD_DIR : OPTIMIZED_UPLOAD_DIR;
+  const savedPath = path.join(directory, filename);
+  fs.writeFileSync(savedPath, content);
+
+  return {
+    url: `/uploads/${kind === "original" ? "originals" : "optimized"}/${filename}`,
+    objectPath: "",
+    filename,
+    storage: "local"
+  };
+}
+
+async function readAssetContent(fileUrl) {
+  if (!fileUrl) return null;
+  const localPath = getLocalUploadPath(fileUrl);
+  if (localPath && fs.existsSync(localPath)) return fs.readFileSync(localPath);
+  if (/^https?:\/\//i.test(fileUrl)) {
+    const response = await fetch(fileUrl);
+    if (!response.ok) return null;
+    return Buffer.from(await response.arrayBuffer());
+  }
+  return null;
+}
+
+const CRC_TABLE = Array.from({ length: 256 }, (_, index) => {
+  let value = index;
+  for (let bit = 0; bit < 8; bit += 1) {
+    value = value & 1 ? 0xedb88320 ^ (value >>> 1) : value >>> 1;
+  }
+  return value >>> 0;
+});
+
+function crc32(buffer) {
+  let crc = 0xffffffff;
+  for (const byte of buffer) {
+    crc = CRC_TABLE[(crc ^ byte) & 0xff] ^ (crc >>> 8);
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+function dosDateTime(date) {
+  const year = Math.max(date.getFullYear(), 1980);
+  const dosTime = (date.getHours() << 11) | (date.getMinutes() << 5) | Math.floor(date.getSeconds() / 2);
+  const dosDate = ((year - 1980) << 9) | ((date.getMonth() + 1) << 5) | date.getDate();
+  return { dosDate, dosTime };
+}
+
+function createZip(files) {
+  const localParts = [];
+  const centralParts = [];
+  let offset = 0;
+  const now = dosDateTime(new Date());
+
+  files.forEach((file) => {
+    const nameBuffer = Buffer.from(file.name.replace(/\\/g, "/"));
+    const checksum = crc32(file.content);
+
+    const localHeader = Buffer.alloc(30);
+    localHeader.writeUInt32LE(0x04034b50, 0);
+    localHeader.writeUInt16LE(20, 4);
+    localHeader.writeUInt16LE(0, 6);
+    localHeader.writeUInt16LE(0, 8);
+    localHeader.writeUInt16LE(now.dosTime, 10);
+    localHeader.writeUInt16LE(now.dosDate, 12);
+    localHeader.writeUInt32LE(checksum, 14);
+    localHeader.writeUInt32LE(file.content.length, 18);
+    localHeader.writeUInt32LE(file.content.length, 22);
+    localHeader.writeUInt16LE(nameBuffer.length, 26);
+    localHeader.writeUInt16LE(0, 28);
+    localParts.push(localHeader, nameBuffer, file.content);
+
+    const centralHeader = Buffer.alloc(46);
+    centralHeader.writeUInt32LE(0x02014b50, 0);
+    centralHeader.writeUInt16LE(20, 4);
+    centralHeader.writeUInt16LE(20, 6);
+    centralHeader.writeUInt16LE(0, 8);
+    centralHeader.writeUInt16LE(0, 10);
+    centralHeader.writeUInt16LE(now.dosTime, 12);
+    centralHeader.writeUInt16LE(now.dosDate, 14);
+    centralHeader.writeUInt32LE(checksum, 16);
+    centralHeader.writeUInt32LE(file.content.length, 20);
+    centralHeader.writeUInt32LE(file.content.length, 24);
+    centralHeader.writeUInt16LE(nameBuffer.length, 28);
+    centralHeader.writeUInt16LE(0, 30);
+    centralHeader.writeUInt16LE(0, 32);
+    centralHeader.writeUInt16LE(0, 34);
+    centralHeader.writeUInt16LE(0, 36);
+    centralHeader.writeUInt32LE(0, 38);
+    centralHeader.writeUInt32LE(offset, 42);
+    centralParts.push(centralHeader, nameBuffer);
+
+    offset += localHeader.length + nameBuffer.length + file.content.length;
+  });
+
+  const centralSize = centralParts.reduce((total, part) => total + part.length, 0);
+  const endRecord = Buffer.alloc(22);
+  endRecord.writeUInt32LE(0x06054b50, 0);
+  endRecord.writeUInt16LE(0, 4);
+  endRecord.writeUInt16LE(0, 6);
+  endRecord.writeUInt16LE(files.length, 8);
+  endRecord.writeUInt16LE(files.length, 10);
+  endRecord.writeUInt32LE(centralSize, 12);
+  endRecord.writeUInt32LE(offset, 16);
+  endRecord.writeUInt16LE(0, 20);
+
+  return Buffer.concat([...localParts, ...centralParts, endRecord]);
+}
+
+async function createPhotosZip(type = "all") {
+  const photos = await readPhotos();
+  const files = [];
+
+  for (const [index, photo] of photos.entries()) {
+    const safeGuest = (photo.guest || "gost").replace(/[^a-z0-9_-]+/gi, "-").slice(0, 40);
+    const assets = [];
+    if (type === "all" || type === "originals") {
+      assets.push({ folder: "originals", url: photo.originalUrl || photo.url });
+    }
+    if (type === "all" || type === "optimized") {
+      assets.push({ folder: "optimized", url: photo.optimizedUrl || photo.url });
+    }
+
+    for (const asset of assets) {
+      const content = await readAssetContent(asset.url);
+      if (!content) continue;
+      const extension = path.extname(getUrlPathname(asset.url)) || ".jpg";
+      files.push({
+        name: `${asset.folder}/${String(index + 1).padStart(3, "0")}-${safeGuest}${extension}`,
+        content
+      });
+    }
+  }
+
+  files.push({
+    name: "metadata.json",
+    content: Buffer.from(JSON.stringify(photos, null, 2))
+  });
+
+  return createZip(files);
+}
+
+async function writeBackupZip() {
+  const today = new Date().toISOString().slice(0, 10);
+  const backupPath = path.join(BACKUP_DIR, `nurdin-adna-backup-${today}.zip`);
+  const zip = await createPhotosZip("all");
+  fs.writeFileSync(backupPath, zip);
+  fs.writeFileSync(path.join(BACKUP_DIR, "latest.txt"), backupPath);
+  return backupPath;
+}
+
+function latestBackupPath() {
+  const latestFile = path.join(BACKUP_DIR, "latest.txt");
+  if (fs.existsSync(latestFile)) {
+    const storedPath = fs.readFileSync(latestFile, "utf8").trim();
+    if (storedPath && fs.existsSync(storedPath)) return storedPath;
+  }
+  const backups = fs
+    .readdirSync(BACKUP_DIR)
+    .filter((name) => name.endsWith(".zip"))
+    .sort()
+    .reverse();
+  return backups.length ? path.join(BACKUP_DIR, backups[0]) : "";
+}
+
+function scheduleDailyBackup() {
+  setTimeout(() => {
+    writeBackupZip().catch((error) => console.error(`Backup nije uspio: ${error.message}`));
+  }, 60 * 1000);
+  setInterval(() => {
+    writeBackupZip().catch((error) => console.error(`Backup nije uspio: ${error.message}`));
+  }, 24 * 60 * 60 * 1000);
+}
+
+async function deletePhoto(id) {
+  const photos = await readPhotos();
+  const photo = photos.find((entry) => entry.id === id);
+  if (!photo) return false;
+
+  [photo.url, photo.optimizedUrl, photo.originalUrl].forEach((fileUrl) => {
+    const filePath = getLocalUploadPath(fileUrl);
+    if (filePath && fs.existsSync(filePath)) fs.unlinkSync(filePath);
+  });
+
+  await removePhotoRow(id);
+  return true;
+}
+
+async function likePhoto(id) {
+  const photos = await readPhotos();
+  const photo = photos.find((entry) => entry.id === id);
+  if (!photo) return null;
+  photo.likes = Number(photo.likes || 0) + 1;
+  return replacePhoto(photo);
+}
+
+async function findDuplicatePhoto(hash) {
+  if (!hash) return null;
+  return (await readPhotos()).find((photo) => photo.originalHash === hash || photo.optimizedHash === hash) || null;
+}
+
+async function handleUpload(req, res) {
+  const contentType = req.headers["content-type"] || "";
+  const boundaryMatch = /boundary=(?:"([^"]+)"|([^;]+))/i.exec(contentType);
+
+  if (!boundaryMatch) {
+    sendError(res, 400, "Upload nije ispravan.");
+    return;
+  }
+
+  let body;
+  try {
+    body = await collectRequestBody(req);
+  } catch (error) {
+    sendError(res, 413, error.message);
+    return;
+  }
+
+  const boundary = boundaryMatch[1] || boundaryMatch[2];
+  const parts = parseMultipart(body, boundary);
+  const optimizedPart = findPart(parts, "photo");
+  const originalPart = findPart(parts, "originalPhoto");
+  const photoPart = optimizedPart || originalPart;
+
+  if (!photoPart || photoPart.content.length === 0) {
+    sendError(res, 400, "Izaberi sliku za upload.");
+    return;
+  }
+
+  const optimizedType = (photoPart.headers["content-type"] || "").toLowerCase();
+  const originalType = ((originalPart || photoPart).headers["content-type"] || "").toLowerCase();
+  if (!ALLOWED_IMAGE_TYPES.has(optimizedType) || !ALLOWED_IMAGE_TYPES.has(originalType)) {
+    sendError(res, 415, "Dozvoljene su JPG, PNG, WEBP i GIF slike.");
+    return;
+  }
+
+  const id = crypto.randomUUID();
+  const originalName =
+    getDispositionValue((originalPart || photoPart).headers["content-disposition"], "filename") || "svadba";
+  const clientHash = getTextPart(parts, "originalHash", 128);
+  const originalHash =
+    clientHash || crypto.createHash("sha256").update((originalPart || photoPart).content).digest("hex");
+  const optimizedHash = crypto.createHash("sha256").update(photoPart.content).digest("hex");
+  const duplicate = await findDuplicatePhoto(originalHash);
+  if (duplicate) {
+    sendJson(res, 409, {
+      error: "Ova slika je vec uploadovana.",
+      duplicateId: duplicate.id
+    });
+    return;
+  }
+
+  let optimizedAsset;
+  let originalAsset;
+  try {
+    optimizedAsset = await saveUploadAsset({
+      id,
+      kind: "optimized",
+      content: photoPart.content,
+      contentType: optimizedType,
+      originalName
+    });
+    originalAsset = await saveUploadAsset({
+      id,
+      kind: "original",
+      content: (originalPart || photoPart).content,
+      contentType: originalType,
+      originalName
+    });
+  } catch (error) {
+    sendError(res, 500, error.message);
+    return;
+  }
+
+  const photo = {
+    id,
+    url: optimizedAsset.url,
+    optimizedUrl: optimizedAsset.url,
+    originalUrl: originalAsset.url,
+    optimizedFilename: optimizedAsset.filename,
+    originalFilename: originalAsset.filename,
+    optimizedObjectPath: optimizedAsset.objectPath,
+    originalObjectPath: originalAsset.objectPath,
+    originalName,
+    originalHash,
+    optimizedHash,
+    caption: getTextPart(parts, "caption", 120),
+    guest: getTextPart(parts, "guest", 60),
+    message: getTextPart(parts, "message", 240),
+    category: normalizeCategory(getTextPart(parts, "category", 40)),
+    likes: 0,
+    hidden: false,
+    storage: optimizedAsset.storage,
+    uploadedAt: new Date().toISOString()
+  };
+
+  await insertPhoto(photo);
+  sendJson(res, 201, photo);
+}
+
+async function handleRequest(req, res) {
+  const url = new URL(req.url, `http://${req.headers.host}`);
+
+  if (req.method === "POST" && url.pathname === "/api/admin/login") {
+    const body = await collectRequestBody(req);
+    let payload = {};
+    try {
+      payload = JSON.parse(body.toString("utf8") || "{}");
+    } catch {
+      payload = {};
+    }
+
+    if (!ADMIN_PASSWORD || payload.password === ADMIN_PASSWORD) {
+      const token = adminToken();
+      res.writeHead(200, {
+        "Content-Type": "application/json; charset=utf-8",
+        "Set-Cookie": `wedding_admin=${encodeURIComponent(token)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=604800`
+      });
+      res.end(JSON.stringify({ ok: true }));
+      return;
+    }
+
+    sendJson(res, 401, { error: "Pogresna admin lozinka." });
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/admin/logout") {
+    res.writeHead(200, {
+      "Content-Type": "application/json; charset=utf-8",
+      "Set-Cookie": "wedding_admin=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0"
+    });
+    res.end(JSON.stringify({ ok: true }));
+    return;
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/photos") {
+    sendJson(res, 200, await readPhotos());
+    return;
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/config") {
+    sendJson(res, 200, {
+      storageMode: STORAGE_MODE,
+      cloudReady: HAS_SUPABASE || Boolean(CLOUD_PUBLIC_URL),
+      cloudPublicUrl: CLOUD_PUBLIC_URL,
+      publicAppUrl: PUBLIC_APP_URL,
+      supabaseReady: HAS_SUPABASE,
+      maxUploadMb: Math.round(MAX_UPLOAD_BYTES / 1024 / 1024)
+    });
+    return;
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/photos/download") {
+    if (!isAdminAuthenticated(req)) {
+      sendUnauthorized(res);
+      return;
+    }
+    const type = url.searchParams.get("type") || "all";
+    const zip = await createPhotosZip(type);
+    sendBuffer(res, 200, zip, {
+      "Content-Type": "application/zip",
+      "Content-Disposition": `attachment; filename="nurdin-adna-${type}.zip"`
+    });
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/backups/run") {
+    if (!isAdminAuthenticated(req)) {
+      sendUnauthorized(res);
+      return;
+    }
+    const backupPath = await writeBackupZip();
+    sendJson(res, 200, { ok: true, path: backupPath });
+    return;
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/backups/latest") {
+    if (!isAdminAuthenticated(req)) {
+      sendUnauthorized(res);
+      return;
+    }
+    let backupPath = latestBackupPath();
+    if (!backupPath) backupPath = await writeBackupZip();
+    const content = fs.readFileSync(backupPath);
+    sendBuffer(res, 200, content, {
+      "Content-Type": "application/zip",
+      "Content-Disposition": `attachment; filename="${path.basename(backupPath)}"`
+    });
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/photos") {
+    await handleUpload(req, res);
+    return;
+  }
+
+  const likeMatch = url.pathname.match(/^\/api\/photos\/([^/]+)\/like$/);
+  if (req.method === "POST" && likeMatch) {
+    const photo = await likePhoto(decodeURIComponent(likeMatch[1]));
+    if (!photo) {
+      sendError(res, 404, "Slika nije pronadjena.");
+      return;
+    }
+    sendJson(res, 200, photo);
+    return;
+  }
+
+  const deleteMatch = url.pathname.match(/^\/api\/photos\/([^/]+)$/);
+  if (req.method === "DELETE" && deleteMatch) {
+    if (!isAdminAuthenticated(req)) {
+      sendUnauthorized(res);
+      return;
+    }
+    if (!(await deletePhoto(decodeURIComponent(deleteMatch[1])))) {
+      sendError(res, 404, "Slika nije pronadjena.");
+      return;
+    }
+    sendJson(res, 200, { ok: true });
+    return;
+  }
+
+  if (req.method === "GET" && url.pathname.startsWith("/uploads/")) {
+    const filePath = safePublicPath(UPLOAD_DIR, url.pathname.replace("/uploads/", ""));
+    if (!filePath) {
+      sendError(res, 400, "Neispravna putanja.");
+      return;
+    }
+    serveFile(res, filePath);
+    return;
+  }
+
+  if (req.method === "GET") {
+    const requestPath = url.pathname === "/" ? "/index.html" : url.pathname;
+    if (requestPath === "/admin.html" && !isAdminAuthenticated(req)) {
+      serveFile(res, path.join(PUBLIC_DIR, "admin-login.html"));
+      return;
+    }
+    const filePath = safePublicPath(PUBLIC_DIR, requestPath);
+    if (!filePath) {
+      sendError(res, 400, "Neispravna putanja.");
+      return;
+    }
+    serveFile(res, filePath);
+    return;
+  }
+
+  sendError(res, 405, "Metoda nije podrzana.");
+}
+
+scheduleDailyBackup();
+
+http.createServer((req, res) => {
+  handleRequest(req, res).catch((error) => {
+    console.error(error);
+    sendError(res, 500, "Server greska.");
+  });
+}).listen(PORT, () => {
+  console.log(`Nurdin i Adna galerija radi na http://localhost:${PORT}`);
+});

@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="bs">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nurdin & Adna | Svadbena galerija</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar" aria-label="Svadba Nurdin i Adna">
+        <a class="brand" href="/">
+          <span>N</span>
+          <span class="brand-mark">&</span>
+          <span>A</span>
+        </a>
+        <p>25.07.2026</p>
+        <a class="admin-link" href="/admin.html">Admin</a>
+      </header>
+
+      <section class="intro" aria-labelledby="page-title">
+        <div class="intro-copy">
+          <p class="kicker">Svadbena galerija</p>
+          <h1 id="page-title">Nurdin & Adna</h1>
+          <p class="lead">Uspomene sa najljepseg dana, skupljene na jednom mjestu.</p>
+          <div class="event-line" aria-label="Detalji svadbe">
+            <span>Subota</span>
+            <span>25. juli 2026</span>
+            <span>Galerija gostiju</span>
+          </div>
+        </div>
+
+        <form class="upload-panel" id="upload-form">
+          <div class="panel-heading">
+            <span class="panel-number">01</span>
+            <div>
+              <h2>Dodaj uspomenu</h2>
+              <p>Slika se odmah pojavljuje u galeriji.</p>
+            </div>
+          </div>
+
+          <label class="file-drop" for="photo">
+            <input id="photo" name="photo" type="file" accept="image/*" required />
+            <span class="file-icon" aria-hidden="true">+</span>
+            <span>
+              <strong id="file-label">Dodaj sliku</strong>
+              <small>JPG, PNG, WEBP ili GIF do 18 MB</small>
+            </span>
+          </label>
+
+          <div class="field-grid">
+            <label>
+              Tvoje ime
+              <input name="guest" type="text" maxlength="60" placeholder="npr. Amir" />
+            </label>
+            <label>
+              Kratka poruka
+              <input name="caption" type="text" maxlength="120" placeholder="npr. Prvi ples" />
+            </label>
+            <label>
+              Kategorija
+              <select name="category">
+                <option>Gosti</option>
+                <option>Pripreme</option>
+                <option>Ceremonija</option>
+                <option>Prvi ples</option>
+                <option>Party</option>
+              </select>
+            </label>
+          </div>
+          <label>
+            Cestitka za mladence
+            <textarea name="message" maxlength="240" rows="3" placeholder="Upisi kratku cestitku ili uspomenu..."></textarea>
+          </label>
+
+          <button type="submit" id="submit-button">Uploaduj sliku</button>
+          <div class="upload-progress" id="upload-progress" hidden>
+            <span id="upload-progress-bar"></span>
+          </div>
+          <p class="status" id="status" role="status" aria-live="polite"></p>
+        </form>
+      </section>
+
+      <section class="feature-strip" aria-label="Dodatne opcije galerije">
+        <article class="qr-panel">
+          <div>
+            <p class="kicker">QR za goste</p>
+            <h2>Otvori galeriju telefonom</h2>
+            <p id="share-url">http://localhost:5177</p>
+          </div>
+          <img id="qr-image" alt="QR kod za svadbenu galeriju" />
+        </article>
+        <article class="slideshow-panel">
+          <p class="kicker">TV prikaz</p>
+          <h2>Slideshow za salu</h2>
+          <label class="inline-option">
+            <input type="checkbox" id="hide-slideshow-messages" />
+            Sakrij cestitke na slideshowu
+          </label>
+          <button type="button" class="secondary-button" id="start-slideshow">Pokreni slideshow</button>
+        </article>
+      </section>
+
+      <section class="gallery-section" aria-labelledby="gallery-title">
+        <div class="popular-section" id="popular-section" hidden>
+          <div>
+            <p class="kicker">Najdraze slike</p>
+            <h2>Najvise srca</h2>
+          </div>
+          <div class="popular-grid" id="popular-grid"></div>
+        </div>
+
+        <div class="gallery-heading">
+          <div>
+            <p class="kicker">Galerija</p>
+            <h2 id="gallery-title">Slike gostiju</h2>
+          </div>
+          <p id="photo-count">0 slika</p>
+        </div>
+        <div class="gallery-tools" aria-label="Filteri galerije">
+          <button class="filter-button is-active" type="button" data-filter="Sve">Sve</button>
+          <button class="filter-button" type="button" data-filter="Najpopularnije">Najpopularnije</button>
+          <button class="filter-button" type="button" data-filter="Pripreme">Pripreme</button>
+          <button class="filter-button" type="button" data-filter="Ceremonija">Ceremonija</button>
+          <button class="filter-button" type="button" data-filter="Prvi ples">Prvi ples</button>
+          <button class="filter-button" type="button" data-filter="Gosti">Gosti</button>
+          <button class="filter-button" type="button" data-filter="Party">Party</button>
+        </div>
+
+        <div class="gallery" id="gallery"></div>
+        <div class="empty-state" id="empty-state">
+          <span class="empty-mark" aria-hidden="true">N & A</span>
+          <h3>Jos nema slika.</h3>
+          <p>Budi prvi koji ce dodati uspomenu iz ovog dana.</p>
+        </div>
+      </section>
+    </main>
+
+    <template id="photo-template">
+      <article class="photo-card">
+        <button class="photo-link" type="button">
+          <img alt="" loading="lazy" />
+        </button>
+        <div class="photo-meta">
+          <span class="category"></span>
+          <p class="caption"></p>
+          <p class="message"></p>
+          <button class="like-button" type="button">
+            <span aria-hidden="true">♥</span>
+            <span class="like-count">0</span>
+          </button>
+          <span class="guest"></span>
+        </div>
+      </article>
+    </template>
+
+    <div class="lightbox" id="lightbox" hidden>
+      <button class="lightbox-close" type="button" aria-label="Zatvori pregled">×</button>
+      <button class="lightbox-nav lightbox-prev" type="button" aria-label="Prethodna slika">‹</button>
+      <figure>
+        <img id="lightbox-image" alt="" />
+        <figcaption>
+          <strong id="lightbox-caption"></strong>
+          <span id="lightbox-meta"></span>
+          <p id="lightbox-message"></p>
+        </figcaption>
+      </figure>
+      <button class="lightbox-nav lightbox-next" type="button" aria-label="Sljedeca slika">›</button>
+    </div>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

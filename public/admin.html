@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="bs">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Admin | Nurdin & Adna</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body class="admin-page">
+    <main class="admin-shell">
+      <section class="admin-hero">
+        <div>
+          <p class="kicker">Admin galerija</p>
+          <h1>Nurdin & Adna</h1>
+        </div>
+        <div class="admin-actions">
+          <a href="/">Nazad na galeriju</a>
+          <a href="/api/photos/download?type=all">Sve slike</a>
+          <a href="/api/photos/download?type=originals">Originali</a>
+          <a href="/api/photos/download?type=optimized">Optimizovane</a>
+          <a href="/api/backups/latest">Zadnji backup</a>
+          <button type="button" id="run-backup">Napravi backup</button>
+          <button type="button" id="refresh-admin">Osvjezi</button>
+          <button type="button" id="admin-logout">Logout</button>
+        </div>
+      </section>
+
+      <section class="admin-grid" aria-label="Statistika">
+        <article class="admin-card">
+          <span>Ukupno slika</span>
+          <strong id="admin-total">0</strong>
+        </article>
+        <article class="admin-card">
+          <span>Ukupno srca</span>
+          <strong id="admin-likes">0</strong>
+        </article>
+        <article class="admin-card">
+          <span>Cestitke</span>
+          <strong id="admin-messages">0</strong>
+        </article>
+        <article class="admin-card">
+          <span>Storage</span>
+          <strong id="admin-storage">local</strong>
+        </article>
+      </section>
+
+      <section class="admin-card">
+        <p class="kicker">Upravljanje slikama</p>
+        <div class="admin-list" id="admin-list"></div>
+      </section>
+    </main>
+
+    <script src="/admin.js"></script>
+  </body>
+</html>
