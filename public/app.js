@@ -308,7 +308,7 @@ async function setupQr() {
 
 fileInput.addEventListener("change", () => {
   const file = fileInput.files[0];
-  fileLabel.textContent = file ? file.name : "Dodaj ili uslikaj fotografiju";
+  fileLabel.textContent = file ? file.name : "Izaberi ili uslikaj fotografiju";
 });
 
 function updateCountdown() {
@@ -377,7 +377,7 @@ form.addEventListener("submit", async (event) => {
     lastUploadAt = Date.now();
 
     form.reset();
-    fileLabel.textContent = "Dodaj ili uslikaj fotografiju";
+    fileLabel.textContent = "Izaberi ili uslikaj fotografiju";
     uploadProgressBar.style.width = "100%";
     statusEl.textContent = "Slika je dodana u galeriju.";
     await loadPhotos();
@@ -385,7 +385,7 @@ form.addEventListener("submit", async (event) => {
     statusEl.textContent = friendlyUploadError(error);
   } finally {
     submitButton.disabled = false;
-    submitButton.textContent = "Uploaduj sliku";
+    submitButton.textContent = "Posalji u galeriju";
     setTimeout(() => {
       uploadProgress.hidden = true;
       uploadProgressBar.style.width = "0%";
