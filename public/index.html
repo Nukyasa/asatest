@@ -19,23 +19,42 @@
       </header>
 
       <section class="intro" aria-labelledby="page-title">
+        <div class="hero-vignette" aria-hidden="true">
+          <span></span>
+          <span></span>
+        </div>
         <div class="intro-copy">
           <p class="kicker">Svadbena galerija</p>
           <h1 id="page-title">Nurdin & Adna</h1>
-          <p class="lead">Uspomene sa najljepseg dana, skupljene na jednom mjestu.</p>
+          <p class="lead">Dragi nasi, hvala sto ste dio naseg dana. Podijelite najljepse trenutke, osmijehe i cestitke da ih sacuvamo na jednom mjestu.</p>
           <div class="event-line" aria-label="Detalji svadbe">
             <span>Subota</span>
             <span>25. juli 2026</span>
             <span>Galerija gostiju</span>
           </div>
+          <div class="countdown" aria-label="Odbrojavanje do svadbe">
+            <div>
+              <strong id="countdown-days">0</strong>
+              <span>dana</span>
+            </div>
+            <div>
+              <strong id="countdown-hours">0</strong>
+              <span>sati</span>
+            </div>
+            <div>
+              <strong id="countdown-minutes">0</strong>
+              <span>min</span>
+            </div>
+          </div>
         </div>
 
         <form class="upload-panel" id="upload-form">
           <div class="panel-heading">
-            <span class="panel-number">01</span>
+            <span class="panel-number" aria-hidden="true">N&A</span>
             <div>
-              <h2>Dodaj uspomenu</h2>
-              <p>Slika se odmah pojavljuje u galeriji.</p>
+              <p class="kicker">Podijeli uspomenu sa nama</p>
+              <h2>Dodaj sliku iz srca slavlja</h2>
+              <p>Slika se odmah pojavljuje u galeriji i ostaje sacuvana za mladence.</p>
             </div>
           </div>
 
@@ -43,7 +62,7 @@
             <input id="photo" name="photo" type="file" accept="image/*" required />
             <span class="file-icon" aria-hidden="true">+</span>
             <span>
-              <strong id="file-label">Dodaj sliku</strong>
+              <strong id="file-label">Dodaj ili uslikaj fotografiju</strong>
               <small>JPG, PNG, WEBP ili GIF do 18 MB</small>
             </span>
           </label>
@@ -82,6 +101,11 @@
       </section>
 
       <section class="feature-strip" aria-label="Dodatne opcije galerije">
+        <article class="welcome-panel">
+          <p class="kicker">Poruka mladenaca</p>
+          <h2>Hvala sto slavite s nama</h2>
+          <p>Svaka fotografija je mali dio price koju cemo gledati godinama. Uhvatite ples, zagrljaje, osmijehe i sve one trenutke koje mladenci ne stignu vidjeti.</p>
+        </article>
         <article class="qr-panel">
           <div>
             <p class="kicker">QR za goste</p>

@@ -24,6 +24,9 @@ const lightboxClose = document.querySelector(".lightbox-close");
 const lightboxPrev = document.querySelector(".lightbox-prev");
 const lightboxNext = document.querySelector(".lightbox-next");
 const hideSlideshowMessages = document.querySelector("#hide-slideshow-messages");
+const countdownDays = document.querySelector("#countdown-days");
+const countdownHours = document.querySelector("#countdown-hours");
+const countdownMinutes = document.querySelector("#countdown-minutes");
 
 let allPhotos = [];
 let visiblePhotos = [];
@@ -37,6 +40,7 @@ const OPTIMIZED_MAX_SIZE = 1800;
 const OPTIMIZED_QUALITY = 0.82;
 const MAX_UPLOAD_BYTES = 60 * 1024 * 1024;
 const UPLOAD_COOLDOWN_MS = 3500;
+const WEDDING_DATE = new Date("2026-07-25T16:00:00+02:00");
 
 function formatCount(count) {
   if (count === 1) return "1 slika";
@@ -130,6 +134,12 @@ async function likePhoto(id) {
   const updated = await response.json();
   allPhotos = allPhotos.map((photo) => (photo.id === updated.id ? updated : photo));
   renderPhotos();
+  const likedCard = gallery.querySelector(`[data-photo-id="${CSS.escape(id)}"] .like-button`);
+  if (likedCard) {
+    likedCard.classList.remove("is-liked");
+    void likedCard.offsetWidth;
+    likedCard.classList.add("is-liked");
+  }
 }
 
 function canvasToBlob(canvas, type, quality) {
@@ -264,6 +274,7 @@ function stopSlideshow() {
     clearInterval(slideshowRefreshTimer);
     slideshowRefreshTimer = null;
   }
+  lightbox.classList.remove("is-slideshow");
 }
 
 function startSlideshow() {
@@ -272,6 +283,7 @@ function startSlideshow() {
     return;
   }
   openLightbox(0);
+  lightbox.classList.add("is-slideshow");
   slideshowButton.textContent = "Slideshow aktivan";
   slideshowTimer = setInterval(() => showPhoto(1), 4200);
   slideshowRefreshTimer = setInterval(() => {
@@ -296,8 +308,20 @@ async function setupQr() {
 
 fileInput.addEventListener("change", () => {
   const file = fileInput.files[0];
-  fileLabel.textContent = file ? file.name : "Dodaj sliku";
+  fileLabel.textContent = file ? file.name : "Dodaj ili uslikaj fotografiju";
 });
+
+function updateCountdown() {
+  if (!countdownDays || !countdownHours || !countdownMinutes) return;
+  const remaining = Math.max(0, WEDDING_DATE.getTime() - Date.now());
+  const totalMinutes = Math.floor(remaining / 60000);
+  const days = Math.floor(totalMinutes / 1440);
+  const hours = Math.floor((totalMinutes % 1440) / 60);
+  const minutes = totalMinutes % 60;
+  countdownDays.textContent = String(days);
+  countdownHours.textContent = String(hours).padStart(2, "0");
+  countdownMinutes.textContent = String(minutes).padStart(2, "0");
+}
 
 filterButtons.forEach((button) => {
   button.addEventListener("click", () => {
@@ -353,7 +377,7 @@ form.addEventListener("submit", async (event) => {
     lastUploadAt = Date.now();
 
     form.reset();
-    fileLabel.textContent = "Dodaj sliku";
+    fileLabel.textContent = "Dodaj ili uslikaj fotografiju";
     uploadProgressBar.style.width = "100%";
     statusEl.textContent = "Slika je dodana u galeriju.";
     await loadPhotos();
@@ -392,6 +416,8 @@ document.addEventListener("keydown", (event) => {
 });
 
 setupQr();
+updateCountdown();
+setInterval(updateCountdown, 60000);
 loadPhotos().catch((error) => {
   statusEl.textContent = error.message;
 });

@@ -1050,3 +1050,562 @@ h2 {
     grid-template-columns: 1fr;
   }
 }
+
+/* Refined wedding invitation look */
+:root {
+  --ink: #1f241c;
+  --muted: #6d655c;
+  --line: rgba(68, 84, 59, 0.18);
+  --paper: rgba(255, 252, 245, 0.94);
+  --soft: #f7f0e4;
+  --accent: #9f4c58;
+  --accent-dark: #5d1f2f;
+  --green: #304d3d;
+  --gold: #c6a15b;
+  --rose: #e5bbb9;
+  --shadow: 0 28px 80px rgba(31, 36, 28, 0.2);
+}
+
+body {
+  background:
+    linear-gradient(180deg, rgba(255, 252, 245, 0.94), rgba(244, 235, 220, 0.98)),
+    url("https://images.unsplash.com/photo-1523438885200-e635ba2c371e?auto=format&fit=crop&w=2200&q=86");
+  background-attachment: fixed;
+  background-position: center;
+  background-size: cover;
+}
+
+.app-shell {
+  width: min(1180px, calc(100% - 32px));
+}
+
+.topbar {
+  position: sticky;
+  top: 14px;
+  z-index: 10;
+  min-height: 66px;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 252, 245, 0.54);
+  border-radius: 999px;
+  background: rgba(40, 48, 36, 0.28);
+  box-shadow: 0 18px 44px rgba(20, 24, 18, 0.18);
+  backdrop-filter: blur(18px);
+}
+
+.brand {
+  width: 58px;
+  height: 58px;
+  border-color: rgba(244, 214, 166, 0.72);
+  background: rgba(31, 36, 28, 0.38);
+}
+
+.intro {
+  position: relative;
+  min-height: min(820px, calc(100vh - 96px));
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 430px);
+  isolation: isolate;
+  padding: 70px clamp(18px, 4vw, 54px) 82px;
+  margin-top: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 252, 245, 0.48);
+  border-radius: 8px;
+  box-shadow: 0 34px 90px rgba(31, 36, 28, 0.26);
+}
+
+.intro::before,
+.intro::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+}
+
+.intro::before {
+  background:
+    linear-gradient(90deg, rgba(18, 24, 18, 0.74), rgba(48, 77, 61, 0.34) 45%, rgba(255, 252, 245, 0.12)),
+    url("https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=2200&q=88");
+  background-position: center;
+  background-size: cover;
+}
+
+.intro::after {
+  z-index: -1;
+  border: 1px solid rgba(244, 214, 166, 0.36);
+  border-radius: 6px;
+  margin: 18px;
+  pointer-events: none;
+}
+
+.hero-vignette {
+  position: absolute;
+  inset: 32px;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.hero-vignette span {
+  position: absolute;
+  width: min(260px, 34vw);
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(244, 214, 166, 0.72), transparent);
+}
+
+.hero-vignette span:first-child {
+  top: 0;
+  left: 0;
+}
+
+.hero-vignette span:last-child {
+  right: 0;
+  bottom: 0;
+}
+
+.intro-copy {
+  align-self: end;
+  padding-bottom: 24px;
+}
+
+.intro-copy .kicker {
+  color: #f4d6a6;
+}
+
+h1 {
+  max-width: 780px;
+  margin-bottom: 20px;
+  font-size: clamp(4rem, 11vw, 9rem);
+}
+
+.lead {
+  max-width: 610px;
+  font-size: 1.22rem;
+}
+
+.event-line span {
+  border-color: rgba(244, 214, 166, 0.42);
+  background: rgba(31, 36, 28, 0.34);
+}
+
+.countdown {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 26px;
+}
+
+.countdown div {
+  min-width: 96px;
+  padding: 14px 16px;
+  border: 1px solid rgba(244, 214, 166, 0.42);
+  border-radius: 8px;
+  color: #fffaf2;
+  background: rgba(31, 36, 28, 0.35);
+  backdrop-filter: blur(12px);
+}
+
+.countdown strong,
+.countdown span {
+  display: block;
+}
+
+.countdown strong {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 2rem;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.countdown span {
+  margin-top: 5px;
+  color: rgba(255, 250, 242, 0.76);
+  font-family: Arial, sans-serif;
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.upload-panel {
+  align-self: center;
+  padding: 28px;
+  border-color: rgba(244, 214, 166, 0.58);
+  background:
+    linear-gradient(180deg, rgba(255, 252, 245, 0.98), rgba(246, 238, 224, 0.94)),
+    var(--paper);
+}
+
+.upload-panel::before {
+  border-color: rgba(198, 161, 91, 0.28);
+}
+
+.panel-number {
+  width: 58px;
+  height: 58px;
+  border: 1px solid rgba(198, 161, 91, 0.56);
+  color: var(--accent-dark);
+  background: #fffaf2;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 0.82rem;
+  font-weight: 400;
+}
+
+.panel-heading {
+  align-items: center;
+}
+
+.panel-heading .kicker {
+  margin-bottom: 5px;
+  color: var(--accent-dark);
+}
+
+.panel-heading h2 {
+  max-width: 320px;
+  font-size: clamp(1.8rem, 3vw, 2.6rem);
+  line-height: 0.98;
+}
+
+.file-drop {
+  min-height: 150px;
+  grid-template-columns: 72px 1fr;
+  border-color: rgba(95, 31, 47, 0.36);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.86), rgba(246, 236, 221, 0.82)),
+    rgba(255, 250, 242, 0.82);
+}
+
+.file-icon {
+  width: 72px;
+  height: 72px;
+  background: linear-gradient(135deg, var(--accent), var(--green));
+  font-size: 2.7rem;
+}
+
+.file-drop strong {
+  font-size: 1.12rem;
+}
+
+button {
+  background: linear-gradient(135deg, var(--green), #203629);
+}
+
+#submit-button {
+  min-height: 56px;
+  background: linear-gradient(135deg, var(--accent-dark), var(--green));
+}
+
+.upload-progress {
+  height: 12px;
+  background: rgba(68, 84, 59, 0.12);
+}
+
+.upload-progress span {
+  background: linear-gradient(90deg, var(--accent), var(--gold), var(--green));
+}
+
+.feature-strip {
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.9fr);
+  align-items: stretch;
+  margin: 26px 0;
+}
+
+.welcome-panel {
+  grid-column: 1 / -1;
+  padding: 34px;
+  border: 1px solid rgba(68, 84, 59, 0.14);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(255, 252, 245, 0.94), rgba(240, 230, 211, 0.9)),
+    url("https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?auto=format&fit=crop&w=1500&q=82");
+  background-position: center;
+  background-size: cover;
+  box-shadow: 0 18px 50px rgba(31, 36, 28, 0.12);
+}
+
+.welcome-panel h2 {
+  max-width: 620px;
+}
+
+.welcome-panel p:not(.kicker) {
+  max-width: 680px;
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-family: Arial, sans-serif;
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+.qr-panel,
+.slideshow-panel,
+.gallery-section {
+  border-color: rgba(68, 84, 59, 0.14);
+  background: rgba(255, 252, 245, 0.9);
+}
+
+.slideshow-panel {
+  display: grid;
+  justify-content: stretch;
+}
+
+.gallery-section {
+  padding: clamp(20px, 4vw, 42px);
+}
+
+.popular-grid {
+  grid-template-columns: 1.15fr 0.9fr 0.9fr;
+}
+
+.popular-item {
+  min-height: 260px;
+  box-shadow: 0 18px 40px rgba(31, 36, 28, 0.16);
+}
+
+.popular-item:first-child {
+  min-height: 330px;
+}
+
+.popular-item img {
+  min-height: inherit;
+  transition: transform 420ms ease;
+}
+
+.popular-item:hover img {
+  transform: scale(1.04);
+}
+
+.gallery {
+  display: block;
+  columns: 3 245px;
+  column-gap: 18px;
+}
+
+.photo-card {
+  display: inline-block;
+  width: 100%;
+  margin: 0 0 18px;
+  break-inside: avoid;
+  animation: cardIn 360ms ease both;
+}
+
+.photo-card:nth-child(3n + 1) .photo-link {
+  aspect-ratio: 4 / 5;
+}
+
+.photo-card:nth-child(3n + 2) .photo-link {
+  aspect-ratio: 1 / 1;
+}
+
+.photo-card:nth-child(3n + 3) .photo-link {
+  aspect-ratio: 5 / 6;
+}
+
+.photo-link img {
+  transition: transform 420ms ease, filter 420ms ease;
+}
+
+.photo-card:hover .photo-link img {
+  transform: scale(1.045);
+  filter: saturate(1.05);
+}
+
+.like-button {
+  position: relative;
+}
+
+.like-button span:first-child {
+  font-size: 1.05rem;
+  transition: transform 180ms ease;
+}
+
+.like-button.is-liked span:first-child {
+  animation: heartBeat 520ms ease;
+}
+
+.empty-state {
+  background:
+    linear-gradient(180deg, rgba(255, 252, 245, 0.72), rgba(247, 240, 228, 0.72)),
+    url("https://images.unsplash.com/photo-1529634806980-85c3dd6d34ac?auto=format&fit=crop&w=1300&q=80");
+  background-position: center;
+  background-size: cover;
+}
+
+.lightbox {
+  background:
+    radial-gradient(circle at center, rgba(95, 31, 47, 0.2), transparent 42%),
+    rgba(10, 12, 10, 0.92);
+  animation: fadeIn 180ms ease both;
+}
+
+.lightbox figure {
+  animation: imageRise 260ms ease both;
+}
+
+.lightbox.is-slideshow figure {
+  max-width: min(1180px, 100%);
+}
+
+.lightbox.is-slideshow img {
+  max-height: 82vh;
+  border-radius: 6px;
+}
+
+.lightbox.is-slideshow figcaption {
+  padding: 12px 20px;
+  border: 1px solid rgba(255, 250, 242, 0.18);
+  border-radius: 999px;
+  background: rgba(20, 24, 18, 0.46);
+  backdrop-filter: blur(12px);
+}
+
+@keyframes cardIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes imageRise {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes heartBeat {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.45);
+  }
+  65% {
+    transform: scale(0.92);
+  }
+}
+
+@media (max-width: 900px) {
+  body {
+    background-attachment: scroll;
+  }
+
+  .topbar {
+    position: relative;
+    top: 0;
+  }
+
+  .intro {
+    grid-template-columns: 1fr;
+    min-height: auto;
+    padding: 58px 20px 26px;
+  }
+
+  .intro-copy {
+    padding-bottom: 0;
+  }
+
+  .upload-panel {
+    align-self: stretch;
+  }
+
+  .feature-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .popular-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .popular-item,
+  .popular-item:first-child {
+    min-height: 240px;
+  }
+}
+
+@media (max-width: 560px) {
+  .app-shell {
+    width: min(100% - 20px, 640px);
+  }
+
+  .topbar {
+    gap: 8px;
+    padding: 7px;
+  }
+
+  .topbar p,
+  .admin-link {
+    padding: 8px 10px;
+    font-size: 0.76rem;
+  }
+
+  .intro {
+    padding: 46px 14px 18px;
+  }
+
+  .intro::after {
+    margin: 10px;
+  }
+
+  h1 {
+    font-size: clamp(3.3rem, 19vw, 5.8rem);
+  }
+
+  .lead {
+    font-size: 1rem;
+  }
+
+  .countdown div {
+    min-width: calc(33.333% - 8px);
+    padding: 12px 10px;
+  }
+
+  .countdown strong {
+    font-size: 1.55rem;
+  }
+
+  .upload-panel {
+    padding: 16px;
+  }
+
+  .panel-heading {
+    align-items: start;
+  }
+
+  .panel-number {
+    width: 48px;
+    height: 48px;
+  }
+
+  .file-drop {
+    grid-template-columns: 54px 1fr;
+    min-height: 126px;
+  }
+
+  .file-icon {
+    width: 54px;
+    height: 54px;
+    font-size: 2.1rem;
+  }
+
+  .welcome-panel {
+    padding: 24px 18px;
+  }
+
+  .gallery {
+    columns: 1;
+  }
+}
