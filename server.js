@@ -18,7 +18,12 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 const SUPABASE_BUCKET = process.env.SUPABASE_BUCKET || "wedding-photos";
 const SUPABASE_PHOTOS_TABLE = process.env.SUPABASE_PHOTOS_TABLE || "wedding_photos";
 const HAS_SUPABASE = Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY);
-const STORAGE_MODE = process.env.STORAGE_MODE || (HAS_SUPABASE ? "supabase" : "local");
+const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || "";
+const CLOUDINARY_API_KEY = process.env.CLOUDINARY_API_KEY || "";
+const CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET || "";
+const CLOUDINARY_FOLDER = process.env.CLOUDINARY_FOLDER || "nurdin-adna-svadba";
+const HAS_CLOUDINARY = Boolean(CLOUDINARY_CLOUD_NAME && CLOUDINARY_API_KEY && CLOUDINARY_API_SECRET);
+const STORAGE_MODE = process.env.STORAGE_MODE || (HAS_CLOUDINARY ? "cloudinary" : HAS_SUPABASE ? "supabase" : "local");
 const CLOUD_PUBLIC_URL = process.env.CLOUD_PUBLIC_URL || "";
 const PUBLIC_APP_URL = process.env.PUBLIC_APP_URL || "";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "";
@@ -363,9 +368,109 @@ async function uploadToSupabase(objectPath, content, contentType) {
   return supabasePublicUrl(objectPath);
 }
 
+function cloudinarySignature(params) {
+  const payload = Object.keys(params)
+    .filter((key) => params[key] !== undefined && params[key] !== "")
+    .sort()
+    .map((key) => `${key}=${params[key]}`)
+    .join("&");
+  return crypto.createHash("sha1").update(`${payload}${CLOUDINARY_API_SECRET}`).digest("hex");
+}
+
+async function uploadToCloudinary({ publicId, content, contentType }) {
+  if (!HAS_CLOUDINARY) {
+    throw new Error("Cloudinary nije konfigurisan. Nedostaju CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY ili CLOUDINARY_API_SECRET.");
+  }
+
+  const timestamp = Math.round(Date.now() / 1000);
+  const params = {
+    folder: CLOUDINARY_FOLDER,
+    overwrite: "false",
+    public_id: publicId,
+    timestamp
+  };
+  const formData = new FormData();
+  formData.append("file", new Blob([content], { type: contentType }), publicId);
+  formData.append("api_key", CLOUDINARY_API_KEY);
+  formData.append("folder", params.folder);
+  formData.append("overwrite", params.overwrite);
+  formData.append("public_id", params.public_id);
+  formData.append("timestamp", String(timestamp));
+  formData.append("signature", cloudinarySignature(params));
+
+  const response = await fetch(
+    `https://api.cloudinary.com/v1_1/${encodeURIComponent(CLOUDINARY_CLOUD_NAME)}/image/upload`,
+    {
+      method: "POST",
+      body: formData
+    }
+  );
+
+  const text = await response.text();
+  let payload = {};
+  try {
+    payload = JSON.parse(text || "{}");
+  } catch {
+    payload = { error: { message: text } };
+  }
+  if (!response.ok) {
+    const detail = payload?.error?.message || JSON.stringify(payload);
+    throw new Error(`Cloudinary upload nije uspio: ${response.status} ${detail}`);
+  }
+
+  return {
+    url: payload.secure_url,
+    publicId: payload.public_id,
+    format: payload.format,
+    bytes: payload.bytes
+  };
+}
+
+async function deleteCloudinaryAsset(publicId) {
+  if (!HAS_CLOUDINARY || !publicId) return;
+  const timestamp = Math.round(Date.now() / 1000);
+  const params = {
+    public_id: publicId,
+    timestamp
+  };
+  const formData = new FormData();
+  formData.append("api_key", CLOUDINARY_API_KEY);
+  formData.append("public_id", publicId);
+  formData.append("timestamp", String(timestamp));
+  formData.append("signature", cloudinarySignature(params));
+
+  const response = await fetch(
+    `https://api.cloudinary.com/v1_1/${encodeURIComponent(CLOUDINARY_CLOUD_NAME)}/image/destroy`,
+    {
+      method: "POST",
+      body: formData
+    }
+  );
+
+  if (!response.ok) {
+    const detail = await response.text().catch(() => "");
+    console.error(`Cloudinary brisanje nije uspjelo za ${publicId}: ${response.status} ${detail}`);
+  }
+}
+
 async function saveUploadAsset({ id, kind, content, contentType, originalName }) {
   const extension = getExtensionFromMime(contentType, originalName);
   const filename = `${Date.now()}-${id}-${kind}${extension}`;
+
+  if (STORAGE_MODE === "cloudinary") {
+    const publicId = `${kind}/${Date.now()}-${id}-${kind}`;
+    const uploaded = await uploadToCloudinary({
+      publicId,
+      content,
+      contentType
+    });
+    return {
+      url: uploaded.url,
+      objectPath: uploaded.publicId,
+      filename: `${path.basename(uploaded.publicId)}.${uploaded.format || extension.replace(".", "")}`,
+      storage: "cloudinary"
+    };
+  }
 
   if (STORAGE_MODE === "supabase") {
     if (!HAS_SUPABASE) {
@@ -562,6 +667,12 @@ async function deletePhoto(id) {
     const filePath = getLocalUploadPath(fileUrl);
     if (filePath && fs.existsSync(filePath)) fs.unlinkSync(filePath);
   });
+  if (photo.storage === "cloudinary") {
+    await Promise.all([
+      deleteCloudinaryAsset(photo.optimizedObjectPath),
+      deleteCloudinaryAsset(photo.originalObjectPath)
+    ]);
+  }
 
   await removePhotoRow(id);
   return true;
@@ -722,10 +833,11 @@ async function handleRequest(req, res) {
   if (req.method === "GET" && url.pathname === "/api/config") {
     sendJson(res, 200, {
       storageMode: STORAGE_MODE,
-      cloudReady: HAS_SUPABASE || Boolean(CLOUD_PUBLIC_URL),
+      cloudReady: HAS_CLOUDINARY || HAS_SUPABASE || Boolean(CLOUD_PUBLIC_URL),
       cloudPublicUrl: CLOUD_PUBLIC_URL,
       publicAppUrl: PUBLIC_APP_URL,
       supabaseReady: HAS_SUPABASE,
+      cloudinaryReady: HAS_CLOUDINARY,
       maxUploadMb: Math.round(MAX_UPLOAD_BYTES / 1024 / 1024)
     });
     return;
