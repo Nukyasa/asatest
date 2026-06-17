@@ -2,7 +2,29 @@
 
 Aplikacija trenutno cuva slike lokalno u `uploads/`, a podatke u `data/photos.json`.
 
-Backend podrzava Supabase Storage i Cloudinary preko environment varijabli.
+Backend podrzava Supabase Storage, Cloudinary i Cloudflare R2 preko environment varijabli.
+
+## Cloudflare R2 Storage
+
+Cloudflare R2 je preporucena opcija ako zelis vise free prostora za slike. Supabase i dalje ostaje baza za metapodatke galerije, dok R2 cuva fajlove.
+
+Render Environment Variables za Cloudflare R2:
+
+```text
+STORAGE_MODE=r2
+R2_ACCOUNT_ID=tvoj-cloudflare-account-id
+R2_ACCESS_KEY_ID=tvoj-r2-access-key-id
+R2_SECRET_ACCESS_KEY=tvoj-r2-secret-access-key
+R2_BUCKET=wedding-photos
+R2_PUBLIC_URL=https://tvoj-public-r2-domain
+```
+
+R2 cuva:
+
+- `optimized/` - manja verzija za brzu galeriju
+- `original/` - originalna slika za arhivu/download
+
+`R2_PUBLIC_URL` mora biti javni URL bucketa, npr. R2 public development URL ili custom domain povezan na bucket.
 
 ## Cloudinary Storage
 
@@ -52,10 +74,11 @@ Bez Supabase varijabli aplikacija nastavlja raditi lokalno u `uploads/`.
 
 Opcije za cloud:
 
+- Cloudflare R2
 - Cloudinary
 - Firebase Storage
 - Supabase Storage
-- AWS S3 / Cloudflare R2
+- AWS S3
 
 Supabase je najjednostavniji put za free test hosting. Cloudinary je bolji kada je prioritet vise prostora za slike i CDN isporuka.
 
@@ -73,12 +96,18 @@ CLOUDINARY_CLOUD_NAME=...
 CLOUDINARY_API_KEY=...
 CLOUDINARY_API_SECRET=...
 CLOUDINARY_FOLDER=nurdin-adna-svadba
+R2_ACCOUNT_ID=...
+R2_ACCESS_KEY_ID=...
+R2_SECRET_ACCESS_KEY=...
+R2_BUCKET=wedding-photos
+R2_PUBLIC_URL=...
 ADMIN_PASSWORD=izaberi-jaku-lozinku
 ADMIN_SESSION_SECRET=dug-random-string
 PUBLIC_APP_URL=https://tvoj-render-link.onrender.com
 ```
 
 Za Cloudinary aktivaciju promijeni `STORAGE_MODE` u `cloudinary`. Supabase varijable i dalje ostaju potrebne za tabelu `wedding_photos`.
+Za Cloudflare R2 aktivaciju promijeni `STORAGE_MODE` u `r2`. Supabase varijable i dalje ostaju potrebne za tabelu `wedding_photos`.
 
 `PUBLIC_APP_URL` se koristi za QR poster i konfiguraciju javnog linka.
 

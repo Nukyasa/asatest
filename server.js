@@ -23,7 +23,13 @@ const CLOUDINARY_API_KEY = process.env.CLOUDINARY_API_KEY || "";
 const CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET || "";
 const CLOUDINARY_FOLDER = process.env.CLOUDINARY_FOLDER || "nurdin-adna-svadba";
 const HAS_CLOUDINARY = Boolean(CLOUDINARY_CLOUD_NAME && CLOUDINARY_API_KEY && CLOUDINARY_API_SECRET);
-const STORAGE_MODE = process.env.STORAGE_MODE || (HAS_CLOUDINARY ? "cloudinary" : HAS_SUPABASE ? "supabase" : "local");
+const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID || "";
+const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID || "";
+const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY || "";
+const R2_BUCKET = process.env.R2_BUCKET || "wedding-photos";
+const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || "";
+const HAS_R2 = Boolean(R2_ACCOUNT_ID && R2_ACCESS_KEY_ID && R2_SECRET_ACCESS_KEY && R2_BUCKET && R2_PUBLIC_URL);
+const STORAGE_MODE = process.env.STORAGE_MODE || (HAS_R2 ? "r2" : HAS_CLOUDINARY ? "cloudinary" : HAS_SUPABASE ? "supabase" : "local");
 const CLOUD_PUBLIC_URL = process.env.CLOUD_PUBLIC_URL || "";
 const PUBLIC_APP_URL = process.env.PUBLIC_APP_URL || "";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "";
@@ -377,6 +383,121 @@ function cloudinarySignature(params) {
   return crypto.createHash("sha1").update(`${payload}${CLOUDINARY_API_SECRET}`).digest("hex");
 }
 
+function hmac(key, value, encoding) {
+  return crypto.createHmac("sha256", key).update(value).digest(encoding);
+}
+
+function sha256Hex(value) {
+  return crypto.createHash("sha256").update(value).digest("hex");
+}
+
+function awsUriEncode(value) {
+  return encodeURIComponent(value).replace(/[!'()*]/g, (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`);
+}
+
+function r2ObjectUrl(objectPath) {
+  const encodedPath = objectPath.split("/").map(awsUriEncode).join("/");
+  return `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${awsUriEncode(R2_BUCKET)}/${encodedPath}`;
+}
+
+function r2PublicUrl(objectPath) {
+  return `${R2_PUBLIC_URL.replace(/\/$/, "")}/${objectPath.split("/").map(awsUriEncode).join("/")}`;
+}
+
+function r2SignedHeaders({ method, objectPath, content, contentType = "" }) {
+  const url = new URL(r2ObjectUrl(objectPath));
+  const now = new Date();
+  const amzDate = now.toISOString().replace(/[:-]|\.\d{3}/g, "");
+  const dateStamp = amzDate.slice(0, 8);
+  const payloadHash = sha256Hex(content || "");
+  const headers = {
+    host: url.host,
+    "x-amz-content-sha256": payloadHash,
+    "x-amz-date": amzDate
+  };
+  if (contentType) headers["content-type"] = contentType;
+
+  const sortedHeaderKeys = Object.keys(headers).sort();
+  const canonicalHeaders = sortedHeaderKeys.map((key) => `${key}:${headers[key]}\n`).join("");
+  const signedHeaders = sortedHeaderKeys.join(";");
+  const canonicalRequest = [
+    method,
+    url.pathname,
+    "",
+    canonicalHeaders,
+    signedHeaders,
+    payloadHash
+  ].join("\n");
+  const credentialScope = `${dateStamp}/auto/s3/aws4_request`;
+  const stringToSign = [
+    "AWS4-HMAC-SHA256",
+    amzDate,
+    credentialScope,
+    sha256Hex(canonicalRequest)
+  ].join("\n");
+  const dateKey = hmac(`AWS4${R2_SECRET_ACCESS_KEY}`, dateStamp);
+  const regionKey = hmac(dateKey, "auto");
+  const serviceKey = hmac(regionKey, "s3");
+  const signingKey = hmac(serviceKey, "aws4_request");
+  const signature = hmac(signingKey, stringToSign, "hex");
+
+  return {
+    url,
+    headers: {
+      ...headers,
+      authorization: `AWS4-HMAC-SHA256 Credential=${R2_ACCESS_KEY_ID}/${credentialScope}, SignedHeaders=${signedHeaders}, Signature=${signature}`
+    }
+  };
+}
+
+async function r2Request({ method, objectPath, content, contentType }) {
+  if (!HAS_R2) {
+    throw new Error("Cloudflare R2 nije konfigurisan. Nedostaju R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET ili R2_PUBLIC_URL.");
+  }
+
+  const signed = r2SignedHeaders({
+    method,
+    objectPath,
+    content: content || "",
+    contentType
+  });
+  const response = await fetch(signed.url, {
+    method,
+    headers: signed.headers,
+    body: content || undefined
+  });
+
+  if (!response.ok) {
+    const detail = await response.text().catch(() => "");
+    throw new Error(`Cloudflare R2 zahtjev nije uspio: ${response.status} ${detail}`);
+  }
+
+  return response;
+}
+
+async function uploadToR2(objectPath, content, contentType) {
+  await r2Request({
+    method: "PUT",
+    objectPath,
+    content,
+    contentType
+  });
+  return r2PublicUrl(objectPath);
+}
+
+async function deleteR2Asset(objectPath) {
+  if (!HAS_R2 || !objectPath) return;
+  try {
+    await r2Request({
+      method: "DELETE",
+      objectPath,
+      content: ""
+    });
+  } catch (error) {
+    console.error(`Cloudflare R2 brisanje nije uspjelo za ${objectPath}: ${error.message}`);
+  }
+}
+
 async function uploadToCloudinary({ publicId, content, contentType }) {
   if (!HAS_CLOUDINARY) {
     throw new Error("Cloudinary nije konfigurisan. Nedostaju CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY ili CLOUDINARY_API_SECRET.");
@@ -456,6 +577,16 @@ async function deleteCloudinaryAsset(publicId) {
 async function saveUploadAsset({ id, kind, content, contentType, originalName }) {
   const extension = getExtensionFromMime(contentType, originalName);
   const filename = `${Date.now()}-${id}-${kind}${extension}`;
+
+  if (STORAGE_MODE === "r2") {
+    const objectPath = `${kind}/${filename}`;
+    return {
+      url: await uploadToR2(objectPath, content, contentType),
+      objectPath,
+      filename,
+      storage: "r2"
+    };
+  }
 
   if (STORAGE_MODE === "cloudinary") {
     const publicId = `${kind}/${Date.now()}-${id}-${kind}`;
@@ -673,6 +804,12 @@ async function deletePhoto(id) {
       deleteCloudinaryAsset(photo.originalObjectPath)
     ]);
   }
+  if (photo.storage === "r2") {
+    await Promise.all([
+      deleteR2Asset(photo.optimizedObjectPath),
+      deleteR2Asset(photo.originalObjectPath)
+    ]);
+  }
 
   await removePhotoRow(id);
   return true;
@@ -833,11 +970,12 @@ async function handleRequest(req, res) {
   if (req.method === "GET" && url.pathname === "/api/config") {
     sendJson(res, 200, {
       storageMode: STORAGE_MODE,
-      cloudReady: HAS_CLOUDINARY || HAS_SUPABASE || Boolean(CLOUD_PUBLIC_URL),
+      cloudReady: HAS_R2 || HAS_CLOUDINARY || HAS_SUPABASE || Boolean(CLOUD_PUBLIC_URL),
       cloudPublicUrl: CLOUD_PUBLIC_URL,
       publicAppUrl: PUBLIC_APP_URL,
       supabaseReady: HAS_SUPABASE,
       cloudinaryReady: HAS_CLOUDINARY,
+      r2Ready: HAS_R2,
       maxUploadMb: Math.round(MAX_UPLOAD_BYTES / 1024 / 1024)
     });
     return;
