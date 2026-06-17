@@ -2173,3 +2173,146 @@ button {
     grid-template-columns: 1fr;
   }
 }
+
+/* Entrance animation and custom hero image support */
+:root {
+  --hero-image: url("https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&w=2200&q=88");
+}
+
+.intro {
+  background:
+    linear-gradient(90deg, rgba(38, 32, 42, 0.22), rgba(38, 32, 42, 0.02) 42%, rgba(255, 255, 255, 0.7)),
+    var(--hero-image);
+  background-position: center;
+  background-size: cover;
+  animation: heroGlow 1200ms ease both;
+}
+
+body.has-custom-hero .intro::before {
+  background:
+    linear-gradient(110deg, rgba(38, 32, 42, 0.42), rgba(185, 54, 95, 0.2) 48%, rgba(255, 255, 255, 0.2)),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.12) 0 1px, transparent 1px 38px);
+}
+
+body.has-custom-hero .intro::after {
+  border-color: rgba(255, 255, 255, 0.72);
+}
+
+.topbar,
+.intro-copy .kicker,
+h1,
+.lead,
+.event-line,
+.countdown,
+.upload-panel {
+  opacity: 0;
+  transform: translateY(18px);
+}
+
+body.is-loaded .topbar,
+body.is-loaded .intro-copy .kicker,
+body.is-loaded h1,
+body.is-loaded .lead,
+body.is-loaded .event-line,
+body.is-loaded .countdown,
+body.is-loaded .upload-panel {
+  animation: introRise 720ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+body.is-loaded .topbar {
+  animation-delay: 40ms;
+}
+
+body.is-loaded .intro-copy .kicker {
+  animation-delay: 130ms;
+}
+
+body.is-loaded h1 {
+  animation-delay: 230ms;
+}
+
+body.is-loaded .lead {
+  animation-delay: 340ms;
+}
+
+body.is-loaded .event-line {
+  animation-delay: 450ms;
+}
+
+body.is-loaded .countdown {
+  animation-delay: 560ms;
+}
+
+body.is-loaded .upload-panel {
+  animation-delay: 680ms;
+}
+
+.countdown div {
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.countdown div:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 18px 38px rgba(38, 32, 42, 0.18);
+}
+
+body.has-custom-hero .upload-panel::after {
+  content: "Nasa naslovna slika";
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  color: #4d2736;
+  background: #fff0a8;
+  font-family: Arial, sans-serif;
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+@keyframes introRise {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.985);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes heroGlow {
+  from {
+    box-shadow: 0 20px 56px rgba(38, 32, 42, 0.08);
+    transform: translateY(4px);
+  }
+  to {
+    box-shadow: 0 30px 80px rgba(38, 32, 42, 0.16);
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 1ms !important;
+  }
+
+  .topbar,
+  .intro-copy .kicker,
+  h1,
+  .lead,
+  .event-line,
+  .countdown,
+  .upload-panel {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}

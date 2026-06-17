@@ -41,6 +41,7 @@ const OPTIMIZED_QUALITY = 0.82;
 const MAX_UPLOAD_BYTES = 60 * 1024 * 1024;
 const UPLOAD_COOLDOWN_MS = 3500;
 const WEDDING_DATE = new Date("2026-07-25T16:00:00+02:00");
+const HERO_IMAGE_CANDIDATES = ["/hero-custom.jpg", "/hero-custom.jpeg", "/hero-custom.png", "/hero-custom.webp"];
 
 function formatCount(count) {
   if (count === 1) return "1 slika";
@@ -323,6 +324,31 @@ function updateCountdown() {
   countdownMinutes.textContent = String(minutes).padStart(2, "0");
 }
 
+function imageExists(src) {
+  return new Promise((resolve) => {
+    const image = new Image();
+    image.onload = () => resolve(true);
+    image.onerror = () => resolve(false);
+    image.src = src;
+  });
+}
+
+async function setupHeroImage() {
+  for (const candidate of HERO_IMAGE_CANDIDATES) {
+    if (await imageExists(candidate)) {
+      document.documentElement.style.setProperty("--hero-image", `url("${candidate}")`);
+      document.body.classList.add("has-custom-hero");
+      return;
+    }
+  }
+}
+
+function startIntroAnimation() {
+  requestAnimationFrame(() => {
+    document.body.classList.add("is-loaded");
+  });
+}
+
 filterButtons.forEach((button) => {
   button.addEventListener("click", () => {
     activeFilter = button.dataset.filter;
@@ -415,6 +441,8 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "ArrowRight") showPhoto(1);
 });
 
+startIntroAnimation();
+setupHeroImage();
 setupQr();
 updateCountdown();
 setInterval(updateCountdown, 60000);
