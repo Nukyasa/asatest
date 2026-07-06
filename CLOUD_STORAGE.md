@@ -4,6 +4,33 @@ Aplikacija trenutno cuva slike lokalno u `uploads/`, a podatke u `data/photos.js
 
 Backend podrzava Supabase Storage, Cloudinary i Cloudflare R2 preko environment varijabli.
 
+## Automatski backup
+
+Aplikacija automatski pravi ZIP backup koji sadrzi:
+
+- `metadata.json` - podaci o slikama, gostima, porukama i lajkovima
+- `originals/` - originalne slike
+- `optimized/` - verzije za brzu galeriju
+
+Backup se cuva u lokalnom folderu `backups/`. Dodatno, mozes podesiti folder koji se automatski sinhronizuje u cloud, npr. OneDrive, Google Drive ili Dropbox:
+
+```text
+BACKUP_INTERVAL_HOURS=24
+BACKUP_ON_CHANGE=true
+BACKUP_CHANGE_DELAY_SECONDS=120
+BACKUP_SYNC_DIR=C:\Users\tvoje-ime\OneDrive\Nurdin-Adna-backup
+```
+
+Ako je `BACKUP_SYNC_DIR` prazan, backup ostaje samo lokalno u `backups/`.
+
+Najjednostavnija preporuka:
+
+1. Napravi folder u OneDrive/Google Drive/Dropbox.
+2. Upisi njegovu putanju u `BACKUP_SYNC_DIR`.
+3. Restartuj server.
+
+Nakon toga svaka nova slika ili izmjena zakazuje backup, a ZIP fajl zavrsi i u cloud-sync folderu.
+
 ## Cloudflare R2 Storage
 
 Cloudflare R2 je preporucena opcija ako zelis vise free prostora za slike. Supabase i dalje ostaje baza za metapodatke galerije, dok R2 cuva fajlove.

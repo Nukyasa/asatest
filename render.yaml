@@ -12,6 +12,14 @@ services:
         value: supabase
       - key: SUPABASE_BUCKET
         value: wedding-photos
+      - key: SUPABASE_PHOTOS_TABLE
+        value: wedding_photos
+      - key: BACKUP_INTERVAL_HOURS
+        value: "24"
+      - key: BACKUP_ON_CHANGE
+        value: "true"
+      - key: BACKUP_CHANGE_DELAY_SECONDS
+        value: "120"
       - key: CLOUDINARY_FOLDER
         value: nurdin-adna-svadba
       - key: R2_BUCKET

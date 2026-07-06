@@ -3,6 +3,33 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 
+function loadEnvFile(filePath) {
+  if (!fs.existsSync(filePath)) return;
+
+  for (const line of fs.readFileSync(filePath, "utf8").split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+
+    const separatorIndex = trimmed.indexOf("=");
+    if (separatorIndex === -1) continue;
+
+    const name = trimmed.slice(0, separatorIndex).trim();
+    let value = trimmed.slice(separatorIndex + 1).trim();
+    if (!name || process.env[name] !== undefined) continue;
+
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+
+    process.env[name] = value;
+  }
+}
+
+loadEnvFile(path.join(__dirname, ".env"));
+
 const PORT = Number(process.env.PORT || 5177);
 const ROOT = __dirname;
 const PUBLIC_DIR = path.join(ROOT, "public");
@@ -13,6 +40,10 @@ const DATA_DIR = path.join(ROOT, "data");
 const BACKUP_DIR = path.join(ROOT, "backups");
 const PHOTOS_FILE = path.join(DATA_DIR, "photos.json");
 const MAX_UPLOAD_BYTES = 60 * 1024 * 1024;
+const BACKUP_SYNC_DIR = process.env.BACKUP_SYNC_DIR || "";
+const BACKUP_INTERVAL_HOURS = Math.max(1, Number(process.env.BACKUP_INTERVAL_HOURS || 24));
+const BACKUP_ON_CHANGE = process.env.BACKUP_ON_CHANGE !== "false";
+const BACKUP_CHANGE_DELAY_SECONDS = Math.max(10, Number(process.env.BACKUP_CHANGE_DELAY_SECONDS || 120));
 const SUPABASE_URL = process.env.SUPABASE_URL || "";
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 const SUPABASE_BUCKET = process.env.SUPABASE_BUCKET || "wedding-photos";
@@ -95,7 +126,7 @@ function adminToken() {
 }
 
 function isAdminAuthenticated(req) {
-  if (!ADMIN_PASSWORD) return true;
+  if (!ADMIN_PASSWORD) return false;
   return parseCookies(req).wedding_admin === adminToken();
 }
 
@@ -175,6 +206,7 @@ async function insertPhoto(photo) {
     const photos = readLocalPhotos();
     photos.unshift(photo);
     writeLocalPhotos(photos);
+    scheduleBackupAfterChange();
     return photo;
   }
 
@@ -187,6 +219,7 @@ async function insertPhoto(photo) {
       created_at: photo.uploadedAt
     })
   });
+  scheduleBackupAfterChange();
   return photo;
 }
 
@@ -194,6 +227,7 @@ async function replacePhoto(photo) {
   if (!HAS_SUPABASE) {
     const photos = readLocalPhotos().map((entry) => (entry.id === photo.id ? photo : entry));
     writeLocalPhotos(photos);
+    scheduleBackupAfterChange();
     return photo;
   }
 
@@ -202,12 +236,14 @@ async function replacePhoto(photo) {
     headers: { prefer: "return=minimal" },
     body: JSON.stringify({ photo })
   });
+  scheduleBackupAfterChange();
   return photo;
 }
 
 async function removePhotoRow(id) {
   if (!HAS_SUPABASE) {
     writeLocalPhotos(readLocalPhotos().filter((entry) => entry.id !== id));
+    scheduleBackupAfterChange();
     return;
   }
 
@@ -215,6 +251,7 @@ async function removePhotoRow(id) {
     method: "DELETE",
     headers: { prefer: "return=minimal" }
   });
+  scheduleBackupAfterChange();
 }
 
 function safePublicPath(baseDir, urlPath) {
@@ -758,11 +795,20 @@ async function createPhotosZip(type = "all") {
 }
 
 async function writeBackupZip() {
-  const today = new Date().toISOString().slice(0, 10);
-  const backupPath = path.join(BACKUP_DIR, `nurdin-adna-backup-${today}.zip`);
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const backupName = `nurdin-adna-backup-${timestamp}.zip`;
+  const backupPath = path.join(BACKUP_DIR, backupName);
   const zip = await createPhotosZip("all");
   fs.writeFileSync(backupPath, zip);
   fs.writeFileSync(path.join(BACKUP_DIR, "latest.txt"), backupPath);
+
+  if (BACKUP_SYNC_DIR) {
+    fs.mkdirSync(BACKUP_SYNC_DIR, { recursive: true });
+    const syncedBackupPath = path.join(BACKUP_SYNC_DIR, backupName);
+    fs.copyFileSync(backupPath, syncedBackupPath);
+    fs.writeFileSync(path.join(BACKUP_SYNC_DIR, "latest.txt"), syncedBackupPath);
+  }
+
   return backupPath;
 }
 
@@ -780,13 +826,24 @@ function latestBackupPath() {
   return backups.length ? path.join(BACKUP_DIR, backups[0]) : "";
 }
 
-function scheduleDailyBackup() {
+let pendingChangeBackup = null;
+
+function scheduleBackupAfterChange() {
+  if (!BACKUP_ON_CHANGE) return;
+  clearTimeout(pendingChangeBackup);
+  pendingChangeBackup = setTimeout(() => {
+    pendingChangeBackup = null;
+    writeBackupZip().catch((error) => console.error(`Backup nakon promjene nije uspio: ${error.message}`));
+  }, BACKUP_CHANGE_DELAY_SECONDS * 1000);
+}
+
+function scheduleAutomaticBackups() {
   setTimeout(() => {
     writeBackupZip().catch((error) => console.error(`Backup nije uspio: ${error.message}`));
   }, 60 * 1000);
   setInterval(() => {
     writeBackupZip().catch((error) => console.error(`Backup nije uspio: ${error.message}`));
-  }, 24 * 60 * 60 * 1000);
+  }, BACKUP_INTERVAL_HOURS * 60 * 60 * 1000);
 }
 
 async function deletePhoto(id) {
@@ -931,6 +988,11 @@ async function handleRequest(req, res) {
   const url = new URL(req.url, `http://${req.headers.host}`);
 
   if (req.method === "POST" && url.pathname === "/api/admin/login") {
+    if (!ADMIN_PASSWORD) {
+      sendJson(res, 503, { error: "Admin lozinka nije podesena na serveru." });
+      return;
+    }
+
     const body = await collectRequestBody(req);
     let payload = {};
     try {
@@ -939,11 +1001,11 @@ async function handleRequest(req, res) {
       payload = {};
     }
 
-    if (!ADMIN_PASSWORD || payload.password === ADMIN_PASSWORD) {
+    if (payload.password === ADMIN_PASSWORD) {
       const token = adminToken();
       res.writeHead(200, {
         "Content-Type": "application/json; charset=utf-8",
-        "Set-Cookie": `wedding_admin=${encodeURIComponent(token)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=604800`
+        "Set-Cookie": `wedding_admin=${encodeURIComponent(token)}; HttpOnly; SameSite=Lax; Path=/`
       });
       res.end(JSON.stringify({ ok: true }));
       return;
@@ -962,6 +1024,16 @@ async function handleRequest(req, res) {
     return;
   }
 
+  if (req.method === "GET" && url.pathname === "/api/health") {
+    sendJson(res, 200, {
+      ok: true,
+      storageMode: STORAGE_MODE,
+      cloudReady: HAS_R2 || HAS_CLOUDINARY || HAS_SUPABASE || Boolean(CLOUD_PUBLIC_URL),
+      backupSyncReady: Boolean(BACKUP_SYNC_DIR)
+    });
+    return;
+  }
+
   if (req.method === "GET" && url.pathname === "/api/photos") {
     sendJson(res, 200, await readPhotos());
     return;
@@ -976,6 +1048,9 @@ async function handleRequest(req, res) {
       supabaseReady: HAS_SUPABASE,
       cloudinaryReady: HAS_CLOUDINARY,
       r2Ready: HAS_R2,
+      backupSyncReady: Boolean(BACKUP_SYNC_DIR),
+      backupIntervalHours: BACKUP_INTERVAL_HOURS,
+      backupOnChange: BACKUP_ON_CHANGE,
       maxUploadMb: Math.round(MAX_UPLOAD_BYTES / 1024 / 1024)
     });
     return;
@@ -1078,7 +1153,7 @@ async function handleRequest(req, res) {
   sendError(res, 405, "Metoda nije podrzana.");
 }
 
-scheduleDailyBackup();
+scheduleAutomaticBackups();
 
 http.createServer((req, res) => {
   handleRequest(req, res).catch((error) => {
