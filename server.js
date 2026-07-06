@@ -61,7 +61,16 @@ const R2_BUCKET = process.env.R2_BUCKET || "wedding-photos";
 const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || "";
 const HAS_R2 = Boolean(R2_ACCOUNT_ID && R2_ACCESS_KEY_ID && R2_SECRET_ACCESS_KEY && R2_BUCKET && R2_PUBLIC_URL);
 const STORAGE_MODE = process.env.STORAGE_MODE || (HAS_R2 ? "r2" : HAS_CLOUDINARY ? "cloudinary" : HAS_SUPABASE ? "supabase" : "local");
+const USE_SUPABASE_DB = HAS_SUPABASE && STORAGE_MODE !== "local";
 const CLOUD_PUBLIC_URL = process.env.CLOUD_PUBLIC_URL || "";
+const CLOUD_STORAGE_READY =
+  STORAGE_MODE === "r2"
+    ? HAS_R2
+    : STORAGE_MODE === "cloudinary"
+      ? HAS_CLOUDINARY
+      : STORAGE_MODE === "supabase"
+        ? HAS_SUPABASE
+        : Boolean(CLOUD_PUBLIC_URL);
 const PUBLIC_APP_URL = process.env.PUBLIC_APP_URL || "";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "";
 const ADMIN_SESSION_SECRET = process.env.ADMIN_SESSION_SECRET || crypto.randomBytes(32).toString("hex");
@@ -196,13 +205,13 @@ async function supabaseRest(pathname, options = {}) {
 }
 
 async function readPhotos() {
-  if (!HAS_SUPABASE) return readLocalPhotos();
+  if (!USE_SUPABASE_DB) return readLocalPhotos();
   const rows = await supabaseRest(`${SUPABASE_PHOTOS_TABLE}?select=photo&order=created_at.desc`);
   return rows.map((row) => normalizePhoto(row.photo || {}));
 }
 
 async function insertPhoto(photo) {
-  if (!HAS_SUPABASE) {
+  if (!USE_SUPABASE_DB) {
     const photos = readLocalPhotos();
     photos.unshift(photo);
     writeLocalPhotos(photos);
@@ -224,7 +233,7 @@ async function insertPhoto(photo) {
 }
 
 async function replacePhoto(photo) {
-  if (!HAS_SUPABASE) {
+  if (!USE_SUPABASE_DB) {
     const photos = readLocalPhotos().map((entry) => (entry.id === photo.id ? photo : entry));
     writeLocalPhotos(photos);
     scheduleBackupAfterChange();
@@ -241,7 +250,7 @@ async function replacePhoto(photo) {
 }
 
 async function removePhotoRow(id) {
-  if (!HAS_SUPABASE) {
+  if (!USE_SUPABASE_DB) {
     writeLocalPhotos(readLocalPhotos().filter((entry) => entry.id !== id));
     scheduleBackupAfterChange();
     return;
@@ -1028,7 +1037,7 @@ async function handleRequest(req, res) {
     sendJson(res, 200, {
       ok: true,
       storageMode: STORAGE_MODE,
-      cloudReady: HAS_R2 || HAS_CLOUDINARY || HAS_SUPABASE || Boolean(CLOUD_PUBLIC_URL),
+      cloudReady: CLOUD_STORAGE_READY,
       backupSyncReady: Boolean(BACKUP_SYNC_DIR)
     });
     return;
@@ -1042,7 +1051,7 @@ async function handleRequest(req, res) {
   if (req.method === "GET" && url.pathname === "/api/config") {
     sendJson(res, 200, {
       storageMode: STORAGE_MODE,
-      cloudReady: HAS_R2 || HAS_CLOUDINARY || HAS_SUPABASE || Boolean(CLOUD_PUBLIC_URL),
+      cloudReady: CLOUD_STORAGE_READY,
       cloudPublicUrl: CLOUD_PUBLIC_URL,
       publicAppUrl: PUBLIC_APP_URL,
       supabaseReady: HAS_SUPABASE,
