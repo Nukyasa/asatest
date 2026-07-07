@@ -9,7 +9,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: STORAGE_MODE
-        value: local
+        value: supabase
       - key: SUPABASE_BUCKET
         value: wedding-photos
       - key: SUPABASE_PHOTOS_TABLE
