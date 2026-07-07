@@ -20,6 +20,8 @@ services:
         value: "true"
       - key: BACKUP_CHANGE_DELAY_SECONDS
         value: "120"
+      - key: STORE_ORIGINAL_UPLOADS
+        value: "false"
       - key: CLOUDINARY_FOLDER
         value: nurdin-adna-svadba
       - key: R2_BUCKET

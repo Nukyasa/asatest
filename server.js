@@ -44,6 +44,7 @@ const BACKUP_SYNC_DIR = process.env.BACKUP_SYNC_DIR || "";
 const BACKUP_INTERVAL_HOURS = Math.max(1, Number(process.env.BACKUP_INTERVAL_HOURS || 24));
 const BACKUP_ON_CHANGE = process.env.BACKUP_ON_CHANGE !== "false";
 const BACKUP_CHANGE_DELAY_SECONDS = Math.max(10, Number(process.env.BACKUP_CHANGE_DELAY_SECONDS || 120));
+const STORE_ORIGINAL_UPLOADS = process.env.STORE_ORIGINAL_UPLOADS !== "false";
 const SUPABASE_URL = process.env.SUPABASE_URL || "";
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 const SUPABASE_BUCKET = process.env.SUPABASE_BUCKET || "wedding-photos";
@@ -778,7 +779,11 @@ async function createPhotosZip(type = "all") {
     const safeGuest = (photo.guest || "gost").replace(/[^a-z0-9_-]+/gi, "-").slice(0, 40);
     const assets = [];
     if (type === "all" || type === "originals") {
-      assets.push({ folder: "originals", url: photo.originalUrl || photo.url });
+      const originalUrl = photo.originalUrl || photo.url;
+      const optimizedUrl = photo.optimizedUrl || photo.url;
+      if (type === "originals" || originalUrl !== optimizedUrl) {
+        assets.push({ folder: "originals", url: originalUrl });
+      }
     }
     if (type === "all" || type === "optimized") {
       assets.push({ folder: "optimized", url: photo.optimizedUrl || photo.url });
@@ -955,13 +960,15 @@ async function handleUpload(req, res) {
       contentType: optimizedType,
       originalName
     });
-    originalAsset = await saveUploadAsset({
-      id,
-      kind: "original",
-      content: (originalPart || photoPart).content,
-      contentType: originalType,
-      originalName
-    });
+    originalAsset = STORE_ORIGINAL_UPLOADS
+      ? await saveUploadAsset({
+          id,
+          kind: "original",
+          content: (originalPart || photoPart).content,
+          contentType: originalType,
+          originalName
+        })
+      : optimizedAsset;
   } catch (error) {
     sendError(res, 500, error.message);
     return;
@@ -1060,6 +1067,7 @@ async function handleRequest(req, res) {
       backupSyncReady: Boolean(BACKUP_SYNC_DIR),
       backupIntervalHours: BACKUP_INTERVAL_HOURS,
       backupOnChange: BACKUP_ON_CHANGE,
+      storeOriginalUploads: STORE_ORIGINAL_UPLOADS,
       maxUploadMb: Math.round(MAX_UPLOAD_BYTES / 1024 / 1024)
     });
     return;

@@ -31,6 +31,18 @@ Najjednostavnija preporuka:
 
 Nakon toga svaka nova slika ili izmjena zakazuje backup, a ZIP fajl zavrsi i u cloud-sync folderu.
 
+## Kompresovani mode za vise slika
+
+Za besplatni Supabase plan preporuceno je da produkcija cuva samo optimizovanu verziju slike:
+
+```text
+STORE_ORIGINAL_UPLOADS=false
+```
+
+Tada aplikacija ne sprema dodatni `original/` fajl u cloud storage, nego `originalUrl` pokazuje na istu optimizovanu sliku. Ovo drasticno smanjuje potrosnju prostora i omogucava mnogo vise uploadovanih slika na free planu.
+
+Tradeoff: admin download originala vise nece imati punu originalnu rezoluciju za nove uploadove. Galerija i dalje radi normalno.
+
 ## Cloudflare R2 Storage
 
 Cloudflare R2 je preporucena opcija ako zelis vise free prostora za slike. Supabase i dalje ostaje baza za metapodatke galerije, dok R2 cuva fajlove.
