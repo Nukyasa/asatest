@@ -43,6 +43,16 @@ Tada aplikacija ne sprema dodatni `original/` fajl u cloud storage, nego `origin
 
 Tradeoff: admin download originala vise nece imati punu originalnu rezoluciju za nove uploadove. Galerija i dalje radi normalno.
 
+## Limit uploadova po uredjaju
+
+Za svadbu je ukljucen jednostavan anti-spam limit:
+
+```text
+MAX_UPLOADS_PER_DEVICE=5
+```
+
+Server postavlja cookie `wedding_device` i odbija sesti upload sa istog browsera/uredjaja. Ako admin obrise sliku tog gosta, taj upload se vise ne racuna jer se limit racuna iz trenutnih slika u bazi.
+
 ## Cloudflare R2 Storage
 
 Cloudflare R2 je preporucena opcija ako zelis vise free prostora za slike. Supabase i dalje ostaje baza za metapodatke galerije, dok R2 cuva fajlove.

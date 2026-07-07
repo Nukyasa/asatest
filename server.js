@@ -45,6 +45,7 @@ const BACKUP_INTERVAL_HOURS = Math.max(1, Number(process.env.BACKUP_INTERVAL_HOU
 const BACKUP_ON_CHANGE = process.env.BACKUP_ON_CHANGE !== "false";
 const BACKUP_CHANGE_DELAY_SECONDS = Math.max(10, Number(process.env.BACKUP_CHANGE_DELAY_SECONDS || 120));
 const STORE_ORIGINAL_UPLOADS = process.env.STORE_ORIGINAL_UPLOADS !== "false";
+const MAX_UPLOADS_PER_DEVICE = Math.max(1, Number(process.env.MAX_UPLOADS_PER_DEVICE || 5));
 const SUPABASE_URL = process.env.SUPABASE_URL || "";
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 const SUPABASE_BUCKET = process.env.SUPABASE_BUCKET || "wedding-photos";
@@ -108,11 +109,12 @@ if (!fs.existsSync(PHOTOS_FILE)) {
   fs.writeFileSync(PHOTOS_FILE, "[]\n");
 }
 
-function sendJson(res, statusCode, payload) {
+function sendJson(res, statusCode, payload, extraHeaders = {}) {
   const body = JSON.stringify(payload);
   res.writeHead(statusCode, {
     "Content-Type": "application/json; charset=utf-8",
-    "Content-Length": Buffer.byteLength(body)
+    "Content-Length": Buffer.byteLength(body),
+    ...extraHeaders
   });
   res.end(body);
 }
@@ -138,6 +140,18 @@ function adminToken() {
 function isAdminAuthenticated(req) {
   if (!ADMIN_PASSWORD) return false;
   return parseCookies(req).wedding_admin === adminToken();
+}
+
+function normalizeDeviceId(value) {
+  return /^[a-f0-9-]{36}$/i.test(value || "") ? value : "";
+}
+
+function getUploadDeviceId(req) {
+  return normalizeDeviceId(parseCookies(req).wedding_device) || crypto.randomUUID();
+}
+
+function uploadDeviceCookie(deviceId) {
+  return `wedding_device=${encodeURIComponent(deviceId)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=31536000`;
 }
 
 function sendUnauthorized(res) {
@@ -950,6 +964,18 @@ async function handleUpload(req, res) {
     return;
   }
 
+  const uploaderDeviceId = getUploadDeviceId(req);
+  const deviceUploadCount = (await readPhotos()).filter((photo) => photo.uploaderDeviceId === uploaderDeviceId).length;
+  if (deviceUploadCount >= MAX_UPLOADS_PER_DEVICE) {
+    sendJson(
+      res,
+      429,
+      { error: `Dosegli ste limit od ${MAX_UPLOADS_PER_DEVICE} slika sa ovog uredjaja.` },
+      { "Set-Cookie": uploadDeviceCookie(uploaderDeviceId) }
+    );
+    return;
+  }
+
   let optimizedAsset;
   let originalAsset;
   try {
@@ -990,6 +1016,7 @@ async function handleUpload(req, res) {
     guest: getTextPart(parts, "guest", 60),
     message: getTextPart(parts, "message", 240),
     category: normalizeCategory(getTextPart(parts, "category", 40)),
+    uploaderDeviceId,
     likes: 0,
     hidden: false,
     storage: optimizedAsset.storage,
@@ -997,7 +1024,7 @@ async function handleUpload(req, res) {
   };
 
   await insertPhoto(photo);
-  sendJson(res, 201, photo);
+  sendJson(res, 201, photo, { "Set-Cookie": uploadDeviceCookie(uploaderDeviceId) });
 }
 
 async function handleRequest(req, res) {
@@ -1068,6 +1095,7 @@ async function handleRequest(req, res) {
       backupIntervalHours: BACKUP_INTERVAL_HOURS,
       backupOnChange: BACKUP_ON_CHANGE,
       storeOriginalUploads: STORE_ORIGINAL_UPLOADS,
+      maxUploadsPerDevice: MAX_UPLOADS_PER_DEVICE,
       maxUploadMb: Math.round(MAX_UPLOAD_BYTES / 1024 / 1024)
     });
     return;
