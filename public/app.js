@@ -5,6 +5,14 @@ const statusEl = document.querySelector("#status");
 const submitButton = document.querySelector("#submit-button");
 const uploadProgress = document.querySelector("#upload-progress");
 const uploadProgressBar = document.querySelector("#upload-progress-bar");
+const progressCopy = document.querySelector("#progress-copy");
+const uploadRemaining = document.querySelector("#upload-remaining");
+const uploadLimitDetail = document.querySelector("#upload-limit-detail");
+const imagePreview = document.querySelector("#image-preview");
+const previewImage = document.querySelector("#preview-image");
+const previewName = document.querySelector("#preview-name");
+const previewSize = document.querySelector("#preview-size");
+const previewRemove = document.querySelector("#preview-remove");
 const gallery = document.querySelector("#gallery");
 const template = document.querySelector("#photo-template");
 const emptyState = document.querySelector("#empty-state");
@@ -36,6 +44,12 @@ let slideshowTimer = null;
 let slideshowRefreshTimer = null;
 let lastUploadHash = "";
 let lastUploadAt = 0;
+let previewObjectUrl = "";
+let uploadStatus = {
+  uploaded: 0,
+  remaining: 10,
+  maxUploadsPerDevice: 10
+};
 const OPTIMIZED_MAX_SIZE = 1800;
 const OPTIMIZED_QUALITY = 0.82;
 const MAX_UPLOAD_BYTES = 60 * 1024 * 1024;
@@ -47,6 +61,50 @@ function formatCount(count) {
   if (count === 1) return "1 slika";
   if (count > 1 && count < 5) return `${count} slike`;
   return `${count} slika`;
+}
+
+function formatBytes(bytes) {
+  if (!bytes) return "";
+  const mb = bytes / 1024 / 1024;
+  return `${mb.toFixed(mb >= 10 ? 0 : 1)} MB`;
+}
+
+function updateUploadLimitCopy() {
+  const max = uploadStatus.maxUploadsPerDevice || 10;
+  const remaining = Math.max(0, Number(uploadStatus.remaining || 0));
+  uploadRemaining.textContent = `Mozes jos dodati ${remaining} od ${max} slika`;
+  uploadLimitDetail.textContent =
+    remaining > 0
+      ? `Do sada si sa ovog uredjaja poslao/la ${uploadStatus.uploaded || 0}.`
+      : "Dosegnut je limit za ovaj uredjaj.";
+  submitButton.disabled = remaining <= 0;
+}
+
+async function loadUploadStatus() {
+  const response = await fetch("/api/upload-status");
+  if (!response.ok) throw new Error("Limit uploada trenutno nije dostupan.");
+  uploadStatus = await response.json();
+  updateUploadLimitCopy();
+}
+
+function clearPreview() {
+  if (previewObjectUrl) URL.revokeObjectURL(previewObjectUrl);
+  previewObjectUrl = "";
+  imagePreview.hidden = true;
+  previewImage.removeAttribute("src");
+  previewName.textContent = "Izabrana fotografija";
+  previewSize.textContent = "";
+  fileInput.value = "";
+  fileLabel.textContent = "Izaberi ili uslikaj fotografiju";
+}
+
+function showPreview(file) {
+  if (previewObjectUrl) URL.revokeObjectURL(previewObjectUrl);
+  previewObjectUrl = URL.createObjectURL(file);
+  previewImage.src = previewObjectUrl;
+  previewName.textContent = file.name;
+  previewSize.textContent = formatBytes(file.size);
+  imagePreview.hidden = false;
 }
 
 function getVisiblePhotos() {
@@ -195,7 +253,8 @@ function uploadWithProgress(formData) {
       if (!event.lengthComputable) return;
       const percent = Math.max(5, Math.round((event.loaded / event.total) * 100));
       uploadProgressBar.style.width = `${percent}%`;
-      statusEl.textContent = `Upload ${percent}%`;
+      progressCopy.hidden = false;
+      progressCopy.textContent = `Upload ${percent}% - saljemo fotografiju u galeriju`;
     });
 
     request.addEventListener("load", () => {
@@ -310,7 +369,14 @@ async function setupQr() {
 fileInput.addEventListener("change", () => {
   const file = fileInput.files[0];
   fileLabel.textContent = file ? file.name : "Izaberi ili uslikaj fotografiju";
+  if (file && file.type.startsWith("image/")) {
+    showPreview(file);
+  } else {
+    clearPreview();
+  }
 });
+
+previewRemove.addEventListener("click", clearPreview);
 
 function updateCountdown() {
   if (!countdownDays || !countdownHours || !countdownMinutes) return;
@@ -365,6 +431,10 @@ form.addEventListener("submit", async (event) => {
     statusEl.textContent = "Prvo izaberi sliku.";
     return;
   }
+  if (uploadStatus.remaining <= 0) {
+    statusEl.textContent = `Dosegli ste limit od ${uploadStatus.maxUploadsPerDevice} slika sa ovog uredjaja.`;
+    return;
+  }
 
   const formData = new FormData(form);
   const originalFile = fileInput.files[0];
@@ -380,6 +450,8 @@ form.addEventListener("submit", async (event) => {
   submitButton.disabled = true;
   uploadProgress.hidden = false;
   uploadProgressBar.style.width = "4%";
+  progressCopy.hidden = false;
+  progressCopy.textContent = "Priprema i optimizacija slike...";
   submitButton.textContent = "Priprema slike...";
 
   try {
@@ -403,18 +475,21 @@ form.addEventListener("submit", async (event) => {
     lastUploadAt = Date.now();
 
     form.reset();
-    fileLabel.textContent = "Izaberi ili uslikaj fotografiju";
+    clearPreview();
     uploadProgressBar.style.width = "100%";
-    statusEl.textContent = "Slika je dodana u galeriju.";
-    await loadPhotos();
+    progressCopy.textContent = "Upload zavrsen.";
+    statusEl.textContent = "Slika je dodana u galeriju. Hvala sto cuvas ovaj trenutak s nama.";
+    await Promise.all([loadPhotos(), loadUploadStatus()]);
   } catch (error) {
     statusEl.textContent = friendlyUploadError(error);
+    await loadUploadStatus().catch(() => {});
   } finally {
-    submitButton.disabled = false;
+    submitButton.disabled = uploadStatus.remaining <= 0;
     submitButton.textContent = "Posalji u galeriju";
     setTimeout(() => {
       uploadProgress.hidden = true;
       uploadProgressBar.style.width = "0%";
+      progressCopy.hidden = true;
     }, 1000);
   }
 });
@@ -444,6 +519,10 @@ document.addEventListener("keydown", (event) => {
 startIntroAnimation();
 setupHeroImage();
 setupQr();
+loadUploadStatus().catch((error) => {
+  uploadRemaining.textContent = "Limit nije dostupan";
+  uploadLimitDetail.textContent = error.message;
+});
 updateCountdown();
 setInterval(updateCountdown, 60000);
 loadPhotos().catch((error) => {

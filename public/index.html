@@ -32,6 +32,10 @@
             <span>25. juli 2026</span>
             <span>Slike gostiju</span>
           </div>
+          <div class="landing-actions">
+            <a class="primary-cta" href="#upload-form">Dodaj slike</a>
+            <a class="ghost-cta" href="#gallery-title">Pogledaj galeriju</a>
+          </div>
           <div class="countdown" aria-label="Odbrojavanje do svadbe">
             <div>
               <strong id="countdown-days">0</strong>
@@ -58,6 +62,11 @@
             </div>
           </div>
 
+          <div class="upload-limit" id="upload-limit">
+            <strong id="upload-remaining">Provjeravam limit...</strong>
+            <span id="upload-limit-detail">Svaki uredjaj ima svoj limit za upload.</span>
+          </div>
+
           <label class="file-drop" for="photo">
             <input id="photo" name="photo" type="file" accept="image/*" required />
             <span class="file-icon" aria-hidden="true">+</span>
@@ -66,6 +75,14 @@
               <small>JPG, PNG, WEBP ili GIF do 18 MB</small>
             </span>
           </label>
+          <div class="image-preview" id="image-preview" hidden>
+            <img id="preview-image" alt="Pregled izabrane fotografije" />
+            <div>
+              <strong id="preview-name">Izabrana fotografija</strong>
+              <span id="preview-size"></span>
+            </div>
+            <button type="button" class="preview-remove" id="preview-remove" aria-label="Ukloni izabranu fotografiju">Ukloni</button>
+          </div>
 
           <div class="field-grid">
             <label>
@@ -96,6 +113,7 @@
           <div class="upload-progress" id="upload-progress" hidden>
             <span id="upload-progress-bar"></span>
           </div>
+          <p class="progress-copy" id="progress-copy" hidden>Priprema uploada...</p>
           <p class="status" id="status" role="status" aria-live="polite"></p>
         </form>
       </section>

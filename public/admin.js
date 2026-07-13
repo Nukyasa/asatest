@@ -2,7 +2,17 @@ const adminList = document.querySelector("#admin-list");
 const totalEl = document.querySelector("#admin-total");
 const likesEl = document.querySelector("#admin-likes");
 const messagesEl = document.querySelector("#admin-messages");
+const devicesEl = document.querySelector("#admin-devices");
 const storageEl = document.querySelector("#admin-storage");
+const limitEl = document.querySelector("#admin-limit");
+const backupEl = document.querySelector("#admin-backup");
+const liveBadge = document.querySelector("#admin-live-badge");
+const statusStorageMode = document.querySelector("#status-storage-mode");
+const statusCloud = document.querySelector("#status-cloud");
+const statusBackupSync = document.querySelector("#status-backup-sync");
+const statusBackupAuto = document.querySelector("#status-backup-auto");
+const statusBackupLatest = document.querySelector("#status-backup-latest");
+const statusGuests = document.querySelector("#status-guests");
 const refreshButton = document.querySelector("#refresh-admin");
 const runBackupButton = document.querySelector("#run-backup");
 const logoutButton = document.querySelector("#admin-logout");
@@ -39,18 +49,45 @@ function rowTemplate(photo) {
   return row;
 }
 
+function formatBackupDate(value) {
+  if (!value) return "Nema jos";
+  return new Intl.DateTimeFormat("bs-BA", {
+    dateStyle: "medium",
+    timeStyle: "short"
+  }).format(new Date(value));
+}
+
+function renderStatus(status) {
+  totalEl.textContent = status.totalPhotos;
+  likesEl.textContent = status.totalLikes;
+  messagesEl.textContent = status.messages;
+  devicesEl.textContent = `${status.devices}/${status.guests}`;
+  storageEl.textContent = status.cloudReady ? "cloud" : status.storageMode;
+  limitEl.textContent = status.maxUploadsPerDevice;
+  backupEl.textContent = status.latestBackup.exists ? "OK" : "Nema";
+
+  liveBadge.textContent = status.cloudReady || status.storageMode === "local" ? "Online" : "Provjeriti";
+  liveBadge.classList.toggle("is-warning", !status.cloudReady && status.storageMode !== "local");
+  statusStorageMode.textContent = status.storageMode;
+  statusCloud.textContent = status.cloudReady ? "Da" : "Ne";
+  statusBackupSync.textContent = status.backupSyncReady ? "Podesen" : "Nije podesen";
+  statusBackupAuto.textContent = status.backupOnChange
+    ? `Na promjenu + svakih ${status.backupIntervalHours}h`
+    : `Svakih ${status.backupIntervalHours}h`;
+  statusBackupLatest.textContent = status.latestBackup.exists
+    ? `${formatBackupDate(status.latestBackup.createdAt)} (${status.latestBackup.sizeMb} MB)`
+    : "Nema jos";
+  statusGuests.textContent = `${status.guests} imena, ${status.devices} uredjaja`;
+}
+
 async function loadAdmin() {
-  const [photosResponse, configResponse] = await Promise.all([
+  const [photosResponse, statusResponse] = await Promise.all([
     fetch("/api/photos"),
-    fetch("/api/config")
+    fetch("/api/admin/status")
   ]);
   const photos = await photosResponse.json();
-  const config = await configResponse.json();
-
-  totalEl.textContent = photos.length;
-  likesEl.textContent = photos.reduce((total, photo) => total + Number(photo.likes || 0), 0);
-  messagesEl.textContent = photos.filter((photo) => photo.message).length;
-  storageEl.textContent = config.cloudReady ? "cloud" : config.storageMode;
+  const status = await statusResponse.json();
+  renderStatus(status);
 
   adminList.replaceChildren();
   if (!photos.length) {

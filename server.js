@@ -854,6 +854,58 @@ function latestBackupPath() {
   return backups.length ? path.join(BACKUP_DIR, backups[0]) : "";
 }
 
+function latestBackupInfo() {
+  const backupPath = latestBackupPath();
+  if (!backupPath) {
+    return {
+      exists: false,
+      name: "",
+      createdAt: "",
+      sizeMb: 0
+    };
+  }
+  const stats = fs.statSync(backupPath);
+  return {
+    exists: true,
+    name: path.basename(backupPath),
+    createdAt: stats.mtime.toISOString(),
+    sizeMb: Math.round((stats.size / 1024 / 1024) * 10) / 10
+  };
+}
+
+function uploadStatusForDevice(photos, deviceId) {
+  const uploaded = photos.filter((photo) => photo.uploaderDeviceId === deviceId).length;
+  const remaining = Math.max(0, MAX_UPLOADS_PER_DEVICE - uploaded);
+  return {
+    uploaded,
+    remaining,
+    maxUploadsPerDevice: MAX_UPLOADS_PER_DEVICE
+  };
+}
+
+function adminStatusFromPhotos(photos) {
+  const devices = new Set(photos.map((photo) => photo.uploaderDeviceId).filter(Boolean));
+  const guests = new Set(
+    photos
+      .map((photo) => String(photo.guest || "").trim().toLowerCase())
+      .filter(Boolean)
+  );
+  return {
+    totalPhotos: photos.length,
+    totalLikes: photos.reduce((total, photo) => total + Number(photo.likes || 0), 0),
+    messages: photos.filter((photo) => photo.message).length,
+    devices: devices.size,
+    guests: guests.size,
+    storageMode: STORAGE_MODE,
+    cloudReady: CLOUD_STORAGE_READY,
+    backupSyncReady: Boolean(BACKUP_SYNC_DIR),
+    backupOnChange: BACKUP_ON_CHANGE,
+    backupIntervalHours: BACKUP_INTERVAL_HOURS,
+    maxUploadsPerDevice: MAX_UPLOADS_PER_DEVICE,
+    latestBackup: latestBackupInfo()
+  };
+}
+
 let pendingChangeBackup = null;
 
 function scheduleBackupAfterChange() {
@@ -1079,6 +1131,24 @@ async function handleRequest(req, res) {
 
   if (req.method === "GET" && url.pathname === "/api/photos") {
     sendJson(res, 200, await readPhotos());
+    return;
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/upload-status") {
+    const uploaderDeviceId = getUploadDeviceId(req);
+    const photos = await readPhotos();
+    sendJson(res, 200, uploadStatusForDevice(photos, uploaderDeviceId), {
+      "Set-Cookie": uploadDeviceCookie(uploaderDeviceId)
+    });
+    return;
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/admin/status") {
+    if (!isAdminAuthenticated(req)) {
+      sendUnauthorized(res);
+      return;
+    }
+    sendJson(res, 200, adminStatusFromPhotos(await readPhotos()));
     return;
   }
 
