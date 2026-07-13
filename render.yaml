@@ -23,7 +23,7 @@ services:
       - key: STORE_ORIGINAL_UPLOADS
         value: "false"
       - key: MAX_UPLOADS_PER_DEVICE
-        value: "5"
+        value: "10"
       - key: CLOUDINARY_FOLDER
         value: nurdin-adna-svadba
       - key: R2_BUCKET
