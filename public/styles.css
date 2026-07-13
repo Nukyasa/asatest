@@ -2628,6 +2628,45 @@ h1 {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+.qr-code-wrap {
+  position: relative;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 148px;
+  height: 148px;
+  padding: 8px;
+  border: 1px solid rgba(36, 33, 38, 0.1);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 12px 28px rgba(36, 33, 38, 0.1);
+}
+
+.qr-panel .qr-code-wrap img {
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+}
+
+.qr-monogram {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 4px solid #fff;
+  border-radius: 50%;
+  color: #fff;
+  background: linear-gradient(135deg, var(--accent-dark), var(--green));
+  box-shadow: 0 8px 18px rgba(36, 33, 38, 0.18);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
 @media (max-width: 900px) {
   .intro {
     grid-template-columns: 1fr;
@@ -2672,5 +2711,10 @@ h1 {
 
   .admin-grid {
     grid-template-columns: 1fr;
+  }
+
+  .qr-code-wrap {
+    width: 138px;
+    height: 138px;
   }
 }

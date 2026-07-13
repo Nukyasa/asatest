@@ -359,7 +359,7 @@ async function setupQr() {
     url = window.location.origin;
   }
   shareUrl.textContent = url;
-  qrImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(url)}`;
+  qrImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&ecc=H&margin=12&data=${encodeURIComponent(url)}`;
 }
 
 fileInput.addEventListener("change", () => {
