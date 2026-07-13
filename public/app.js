@@ -20,8 +20,6 @@ const photoCount = document.querySelector("#photo-count");
 const popularSection = document.querySelector("#popular-section");
 const popularGrid = document.querySelector("#popular-grid");
 const filterButtons = document.querySelectorAll(".filter-button");
-const qrImage = document.querySelector("#qr-image");
-const shareUrl = document.querySelector("#share-url");
 const slideshowButton = document.querySelector("#start-slideshow");
 const lightbox = document.querySelector("#lightbox");
 const lightboxImage = document.querySelector("#lightbox-image");
@@ -347,21 +345,6 @@ function startSlideshow() {
   }, 15000);
 }
 
-async function setupQr() {
-  let url = window.location.origin;
-  try {
-    const response = await fetch("/api/config");
-    if (response.ok) {
-      const config = await response.json();
-      if (config.publicAppUrl) url = config.publicAppUrl;
-    }
-  } catch {
-    url = window.location.origin;
-  }
-  shareUrl.textContent = url;
-  qrImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&ecc=H&margin=12&data=${encodeURIComponent(url)}`;
-}
-
 fileInput.addEventListener("change", () => {
   const file = fileInput.files[0];
   fileLabel.textContent = file ? file.name : "Izaberi ili uslikaj fotografiju";
@@ -514,7 +497,6 @@ document.addEventListener("keydown", (event) => {
 
 startIntroAnimation();
 setupHeroImage();
-setupQr();
 loadUploadStatus().catch((error) => {
   uploadRemaining.textContent = "Limit nije dostupan";
   uploadLimitDetail.textContent = error.message;
