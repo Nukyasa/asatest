@@ -76,7 +76,6 @@ const CLOUD_STORAGE_READY =
 const PUBLIC_APP_URL = process.env.PUBLIC_APP_URL || "";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "";
 const ADMIN_SESSION_SECRET = process.env.ADMIN_SESSION_SECRET || crypto.randomBytes(32).toString("hex");
-const CATEGORIES = new Set(["Pripreme", "Ceremonija", "Prvi ples", "Gosti", "Party"]);
 
 const MIME_TYPES = {
   ".html": "text/html; charset=utf-8",
@@ -173,7 +172,6 @@ function sendError(res, statusCode, message) {
 function normalizePhoto(photo) {
   return {
     likes: 0,
-    category: "Gosti",
     message: "",
     hidden: false,
     optimizedUrl: photo.url,
@@ -376,10 +374,6 @@ function findPart(parts, name) {
     const disposition = entry.headers["content-disposition"] || "";
     return getDispositionValue(disposition, "name") === name;
   });
-}
-
-function normalizeCategory(value) {
-  return CATEGORIES.has(value) ? value : "Gosti";
 }
 
 function getPhotoFilename(photo) {
@@ -1067,7 +1061,6 @@ async function handleUpload(req, res) {
     caption: getTextPart(parts, "caption", 120),
     guest: getTextPart(parts, "guest", 60),
     message: getTextPart(parts, "message", 240),
-    category: normalizeCategory(getTextPart(parts, "category", 40)),
     uploaderDeviceId,
     likes: 0,
     hidden: false,

@@ -29,7 +29,7 @@ function rowTemplate(photo) {
   const title = document.createElement("h3");
   title.textContent = photo.caption || "Svadbena uspomena";
   const meta = document.createElement("p");
-  meta.textContent = `${photo.guest || "Gost"} - ${photo.category || "Gosti"} - ${photo.likes || 0} srca`;
+  meta.textContent = `${photo.guest || "Gost"} - ${photo.likes || 0} srca`;
   const message = document.createElement("p");
   message.textContent = photo.message || "";
   content.append(title, meta, message);

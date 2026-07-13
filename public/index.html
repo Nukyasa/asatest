@@ -93,16 +93,6 @@
               Kratka poruka
               <input name="caption" type="text" maxlength="120" placeholder="npr. Prvi ples" />
             </label>
-            <label>
-              Kategorija
-              <select name="category">
-                <option>Gosti</option>
-                <option>Pripreme</option>
-                <option>Ceremonija</option>
-                <option>Prvi ples</option>
-                <option>Party</option>
-              </select>
-            </label>
           </div>
           <label>
             Cestitka za mladence
@@ -159,14 +149,9 @@
           </div>
           <p id="photo-count">0 slika</p>
         </div>
-        <div class="gallery-tools" aria-label="Filteri galerije">
-          <button class="filter-button is-active" type="button" data-filter="Sve">Sve</button>
+        <div class="gallery-tools" aria-label="Sortiranje galerije">
+          <button class="filter-button is-active" type="button" data-filter="Sve">Sve slike</button>
           <button class="filter-button" type="button" data-filter="Najpopularnije">Najpopularnije</button>
-          <button class="filter-button" type="button" data-filter="Pripreme">Pripreme</button>
-          <button class="filter-button" type="button" data-filter="Ceremonija">Ceremonija</button>
-          <button class="filter-button" type="button" data-filter="Prvi ples">Prvi ples</button>
-          <button class="filter-button" type="button" data-filter="Gosti">Gosti</button>
-          <button class="filter-button" type="button" data-filter="Party">Party</button>
         </div>
 
         <div class="gallery" id="gallery"></div>
@@ -184,7 +169,6 @@
           <img alt="" loading="lazy" />
         </button>
         <div class="photo-meta">
-          <span class="category"></span>
           <p class="caption"></p>
           <p class="message"></p>
           <button class="like-button" type="button">

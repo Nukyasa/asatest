@@ -598,16 +598,6 @@ h2 {
   font-size: 0.9rem;
 }
 
-.category {
-  width: fit-content;
-  padding: 5px 9px;
-  border-radius: 999px;
-  color: var(--accent-dark);
-  background: rgba(185, 146, 98, 0.14);
-  font-size: 0.76rem;
-  font-weight: 800;
-}
-
 .caption {
   margin: 0;
   color: var(--ink);
@@ -2036,21 +2026,6 @@ button {
 .photo-card:hover {
   transform: translateY(-5px) rotate(-0.35deg);
   box-shadow: 0 24px 54px rgba(185, 54, 95, 0.18);
-}
-
-.category {
-  color: #3c2145;
-  background: #ffe1e8;
-}
-
-.photo-card:nth-child(3n + 2) .category {
-  color: #123f3b;
-  background: #dff8f5;
-}
-
-.photo-card:nth-child(3n + 3) .category {
-  color: #4d390c;
-  background: #fff0a8;
 }
 
 .like-button {

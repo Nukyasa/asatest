@@ -111,9 +111,7 @@ function getVisiblePhotos() {
   if (activeFilter === "Najpopularnije") {
     return [...allPhotos].sort((a, b) => Number(b.likes || 0) - Number(a.likes || 0));
   }
-  return activeFilter === "Sve"
-    ? allPhotos
-    : allPhotos.filter((photo) => (photo.category || "Gosti") === activeFilter);
+  return allPhotos;
 }
 
 function renderPhotos() {
@@ -128,7 +126,6 @@ function renderPhotos() {
     const card = node.querySelector(".photo-card");
     const openButton = node.querySelector(".photo-link");
     const image = node.querySelector("img");
-    const category = node.querySelector(".category");
     const caption = node.querySelector(".caption");
     const message = node.querySelector(".message");
     const guest = node.querySelector(".guest");
@@ -137,7 +134,6 @@ function renderPhotos() {
 
     image.src = photo.url;
     image.alt = photo.caption || `Slika koju je dodao ${photo.guest || "gost"}`;
-    category.textContent = photo.category || "Gosti";
     caption.textContent = photo.caption || "Svadbena uspomena";
     message.textContent = photo.message || "";
     message.hidden = !photo.message;
@@ -305,7 +301,7 @@ function openLightbox(index) {
   lightboxImage.src = photo.optimizedUrl || photo.url;
   lightboxImage.alt = photo.caption || "Svadbena slika";
   lightboxCaption.textContent = photo.caption || "Svadbena uspomena";
-  lightboxMeta.textContent = `${photo.category || "Gosti"} - ${photo.guest || "Gost"} - ${photo.likes || 0} srca`;
+  lightboxMeta.textContent = `${photo.guest || "Gost"} - ${photo.likes || 0} srca`;
   lightboxMessage.textContent = photo.message || "";
   lightboxMessage.hidden = !photo.message || (slideshowTimer && hideSlideshowMessages.checked);
   lightbox.hidden = false;
