@@ -297,7 +297,7 @@ function serveFile(res, filePath) {
       "Content-Length": stat.size,
       "Cache-Control": filePath.includes(`${path.sep}uploads${path.sep}`)
         ? "public, max-age=31536000, immutable"
-        : "no-cache"
+        : "no-store, max-age=0, must-revalidate"
     });
     fs.createReadStream(filePath).pipe(res);
   });
