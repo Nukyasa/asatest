@@ -4202,6 +4202,46 @@ body.is-loaded .intro h1 span {
   .hero-backdrop { transform: scale(1.04); }
 }
 
+/* Final hero composition: keep the names together and give the first screen air. */
+.intro h1 {
+  max-width: 100%;
+  font-size: clamp(3.3rem, 8.5vw, 7.2rem);
+  line-height: 0.92;
+  letter-spacing: -0.06em;
+  white-space: nowrap;
+}
+
+.intro-copy {
+  max-width: 700px;
+}
+
+.countdown {
+  max-width: 660px;
+}
+
+@media (max-width: 760px) {
+  .intro {
+    min-height: auto;
+    grid-template-columns: 1fr;
+    gap: 28px;
+    padding: 38px 0 58px;
+  }
+
+  .intro h1 {
+    font-size: clamp(2.6rem, 14vw, 5.2rem);
+  }
+
+  .intro-copy {
+    max-width: none;
+  }
+
+  .upload-panel {
+    width: 100%;
+    justify-self: stretch;
+    margin-top: 0;
+  }
+}
+
 /* Brighter romantic color pass */
 body {
   color: #392840;
