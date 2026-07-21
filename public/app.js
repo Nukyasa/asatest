@@ -134,6 +134,10 @@ function renderPhotos() {
     const likeCount = node.querySelector(".like-count");
 
     image.src = photo.optimizedUrl || photo.url;
+    image.addEventListener("error", () => {
+      const fallback = photo.originalUrl || photo.url;
+      if (image.src !== fallback) image.src = fallback;
+    }, { once: true });
     image.decoding = "async";
     image.alt = photo.caption || `Slika koju je dodao ${photo.guest || "gost"}`;
     caption.textContent = photo.caption || "Svadbena uspomena";
@@ -163,6 +167,10 @@ function renderPopular() {
     button.type = "button";
     const image = document.createElement("img");
     image.src = photo.optimizedUrl || photo.url;
+    image.addEventListener("error", () => {
+      const fallback = photo.originalUrl || photo.url;
+      if (image.src !== fallback) image.src = fallback;
+    }, { once: true });
     image.alt = photo.caption || "Popularna slika";
     const badge = document.createElement("span");
     badge.textContent = `${photo.likes || 0} srca`;

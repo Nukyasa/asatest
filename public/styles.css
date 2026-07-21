@@ -3145,3 +3145,107 @@ h1 {
     animation: none;
   }
 }
+
+/* Final mobile layout safeguards */
+@media (max-width: 700px) {
+  .app-shell,
+  .admin-shell {
+    width: min(100% - 20px, 1120px);
+  }
+
+  .topbar {
+    grid-template-columns: auto 1fr auto;
+    gap: 10px;
+    padding: 12px 0;
+  }
+
+  .topbar > p {
+    text-align: center;
+    font-size: 0.76rem;
+  }
+
+  .admin-hero,
+  .admin-card {
+    padding: 16px;
+  }
+
+  .admin-actions {
+    width: 100%;
+  }
+
+  .admin-actions a,
+  .admin-actions button {
+    flex: 1 1 145px;
+    min-width: 0;
+  }
+
+  .admin-qr-card {
+    align-items: center;
+    text-align: center;
+  }
+
+  .admin-qr-copy {
+    max-width: none;
+  }
+
+  .admin-qr-copy .secondary-button {
+    width: 100%;
+  }
+
+  .admin-qr-wrap {
+    width: 172px;
+    height: 172px;
+  }
+
+  .upload-panel,
+  .welcome-panel,
+  .slideshow-panel,
+  .gallery-section {
+    min-width: 0;
+  }
+
+  .field-grid,
+  .guest-steps {
+    grid-template-columns: 1fr;
+  }
+
+  .guest-step {
+    min-height: auto;
+  }
+
+  .gallery {
+    column-count: 2;
+    column-gap: 10px;
+  }
+
+  .photo-card {
+    margin-bottom: 10px;
+  }
+
+  .photo-meta {
+    gap: 4px;
+    padding: 10px;
+    font-size: 0.78rem;
+  }
+}
+
+@media (max-width: 420px) {
+  .topbar {
+    grid-template-columns: auto 1fr;
+  }
+
+  .topbar > p {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    order: 3;
+  }
+
+  .admin-qr-wrap {
+    width: 152px;
+    height: 152px;
+  }
+
+  .gallery {
+    column-count: 1;
+  }
+}

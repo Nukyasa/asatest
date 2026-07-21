@@ -26,6 +26,10 @@ function rowTemplate(photo) {
   const image = document.createElement("img");
   image.src = photo.url;
   image.alt = "";
+  image.addEventListener("error", () => {
+    const fallback = photo.optimizedUrl || photo.originalUrl;
+    if (fallback && image.src !== fallback) image.src = fallback;
+  }, { once: true });
 
   const content = document.createElement("div");
   const title = document.createElement("h3");

@@ -196,6 +196,28 @@ function normalizePhoto(photo) {
   };
 }
 
+function driveFileIdFromUrl(fileUrl) {
+  if (!fileUrl || typeof fileUrl !== "string") return "";
+  try {
+    const parsed = new URL(fileUrl);
+    if (!parsed.hostname.endsWith("google.com") && !parsed.hostname.endsWith("googleusercontent.com")) return "";
+    return parsed.searchParams.get("id") || "";
+  } catch {
+    return "";
+  }
+}
+
+function publicPhoto(photo) {
+  const result = { ...photo };
+  if (result.storage !== "drive") return result;
+
+  ["url", "optimizedUrl", "originalUrl"].forEach((field) => {
+    const fileId = driveFileIdFromUrl(result[field]);
+    if (fileId) result[field] = `/api/media/${encodeURIComponent(fileId)}`;
+  });
+  return result;
+}
+
 function readLocalPhotos() {
   try {
     const parsed = JSON.parse(fs.readFileSync(PHOTOS_FILE, "utf8"));
@@ -1242,7 +1264,7 @@ async function handleUpload(req, res) {
   };
 
   await insertPhoto(photo);
-  sendJson(res, 201, photo, { "Set-Cookie": uploadDeviceCookie(uploaderDeviceId) });
+  sendJson(res, 201, publicPhoto(photo), { "Set-Cookie": uploadDeviceCookie(uploaderDeviceId) });
 }
 
 async function handleRequest(req, res) {
@@ -1296,7 +1318,7 @@ async function handleRequest(req, res) {
   }
 
   if (req.method === "GET" && url.pathname === "/api/photos") {
-    sendJson(res, 200, await readPhotos());
+    sendJson(res, 200, (await readPhotos()).map(publicPhoto));
     return;
   }
 
@@ -1388,7 +1410,7 @@ async function handleRequest(req, res) {
       sendError(res, 404, "Slika nije pronadjena.");
       return;
     }
-    sendJson(res, 200, photo);
+    sendJson(res, 200, publicPhoto(photo));
     return;
   }
 
@@ -1413,6 +1435,27 @@ async function handleRequest(req, res) {
       return;
     }
     serveFile(res, filePath);
+    return;
+  }
+
+  const mediaMatch = url.pathname.match(/^\/api\/media\/([a-zA-Z0-9_-]+)$/);
+  if (req.method === "GET" && mediaMatch) {
+    const fileId = mediaMatch[1];
+    const response = await fetch(googleDrivePublicUrl(fileId), { redirect: "follow" });
+    if (!response.ok) {
+      sendError(res, 404, "Slika nije pronadjena.");
+      return;
+    }
+    const contentType = response.headers.get("content-type") || "";
+    if (!contentType.startsWith("image/")) {
+      sendError(res, 502, "Google Drive nije vratio sliku.");
+      return;
+    }
+    const content = Buffer.from(await response.arrayBuffer());
+    sendBuffer(res, 200, content, {
+      "Content-Type": contentType,
+      "Cache-Control": "public, max-age=31536000, immutable"
+    });
     return;
   }
 
