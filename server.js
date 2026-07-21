@@ -2,6 +2,7 @@ const http = require("http");
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+const { Readable } = require("stream");
 
 function loadEnvFile(filePath) {
   if (!fs.existsSync(filePath)) return;
@@ -1454,21 +1455,37 @@ async function handleRequest(req, res) {
   const mediaMatch = url.pathname.match(/^\/api\/media\/([a-zA-Z0-9_-]+)$/);
   if (req.method === "GET" && mediaMatch) {
     const fileId = mediaMatch[1];
-    const response = await fetch(googleDrivePublicUrl(fileId), { redirect: "follow" });
+    const range = req.headers.range;
+    const response = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?alt=media`,
+      {
+        headers: {
+          authorization: `Bearer ${await googleDriveAccessToken()}`,
+          ...(range ? { range } : {})
+        }
+      }
+    );
     if (!response.ok) {
-      sendError(res, 404, "Slika nije pronadjena.");
+      sendError(res, 404, "Medijski fajl nije pronadjen.");
       return;
     }
     const contentType = response.headers.get("content-type") || "";
-    if (!contentType.startsWith("image/")) {
-      sendError(res, 502, "Google Drive nije vratio sliku.");
+    if (!contentType.startsWith("image/") && !contentType.startsWith("video/")) {
+      sendError(res, 502, "Google Drive nije vratio podrzan medijski fajl.");
       return;
     }
-    const content = Buffer.from(await response.arrayBuffer());
-    sendBuffer(res, 200, content, {
+    const headers = {
       "Content-Type": contentType,
-      "Cache-Control": "public, max-age=31536000, immutable"
-    });
+      "Cache-Control": "public, max-age=31536000, immutable",
+      "Accept-Ranges": "bytes"
+    };
+    for (const name of ["content-length", "content-range", "etag", "last-modified"]) {
+      const value = response.headers.get(name);
+      if (value) headers[name.replace(/(^|-)([a-z])/g, (_, dash, letter) => dash + letter.toUpperCase())] = value;
+    }
+    res.writeHead(response.status, headers);
+    if (response.body) Readable.fromWeb(response.body).pipe(res);
+    else res.end();
     return;
   }
 

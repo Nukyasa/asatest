@@ -249,7 +249,15 @@ function renderPhotos() {
     const isVideo = String(photo.mediaType || photo.mimeType || "").startsWith("video/");
     image.hidden = isVideo;
     video.hidden = !isVideo;
-    if (isVideo) video.src = mediaUrl;
+    if (isVideo) {
+      video.controls = true;
+      video.src = mediaUrl;
+      video.addEventListener("click", (event) => event.stopPropagation());
+      video.addEventListener("error", () => {
+        const fallback = photo.originalUrl || photo.url;
+        if (fallback && video.src !== fallback) video.src = fallback;
+      }, { once: true });
+    }
     else image.src = mediaUrl;
     image.addEventListener("error", () => {
       const fallback = photo.originalUrl || photo.url;
@@ -431,6 +439,7 @@ function openLightbox(index) {
   lightboxVideo.hidden = !isVideo;
   if (isVideo) {
     lightboxVideo.src = mediaUrl;
+    lightboxVideo.load();
     lightboxVideo.currentTime = 0;
   } else {
     lightboxVideo.removeAttribute("src");

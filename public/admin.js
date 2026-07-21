@@ -19,6 +19,44 @@ const refreshButton = document.querySelector("#refresh-admin");
 const runBackupButton = document.querySelector("#run-backup");
 const logoutButton = document.querySelector("#admin-logout");
 
+function buildQrWithLogo(sourceUrl) {
+  return new Promise((resolve) => {
+    const source = new Image();
+    source.crossOrigin = "anonymous";
+    source.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = source.naturalWidth || 900;
+      canvas.height = source.naturalHeight || 900;
+      const context = canvas.getContext("2d");
+      context.drawImage(source, 0, 0, canvas.width, canvas.height);
+
+      const size = Math.round(canvas.width * 0.19);
+      const center = canvas.width / 2;
+      context.fillStyle = "#fffdf8";
+      context.beginPath();
+      context.arc(center, center, size / 2 + 14, 0, Math.PI * 2);
+      context.fill();
+
+      const logoGradient = context.createLinearGradient(center - size / 2, center + size / 2, center + size / 2, center - size / 2);
+      logoGradient.addColorStop(0, "#bd5b91");
+      logoGradient.addColorStop(1, "#e0a84f");
+      context.fillStyle = logoGradient;
+      context.beginPath();
+      context.arc(center, center, size / 2, 0, Math.PI * 2);
+      context.fill();
+
+      context.fillStyle = "#fffdf8";
+      context.font = `700 ${Math.round(size * 0.27)}px Arial, sans-serif`;
+      context.textAlign = "center";
+      context.textBaseline = "middle";
+      context.fillText("N & A", center, center);
+      resolve(canvas.toDataURL("image/png"));
+    };
+    source.onerror = () => resolve(sourceUrl);
+    source.src = sourceUrl;
+  });
+}
+
 function rowTemplate(photo) {
   const row = document.createElement("article");
   row.className = "admin-photo-row";
@@ -105,9 +143,10 @@ async function loadAdmin() {
   renderStatus(status);
 
   const galleryUrl = config.publicAppUrl || window.location.origin;
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=900x900&margin=24&ecc=M&format=png&data=${encodeURIComponent(galleryUrl)}`;
-  qrImage.src = qrUrl;
-  downloadQr.href = qrUrl;
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=900x900&margin=24&ecc=H&format=png&data=${encodeURIComponent(galleryUrl)}`;
+  const qrWithLogo = await buildQrWithLogo(qrUrl);
+  qrImage.src = qrWithLogo;
+  downloadQr.href = qrWithLogo;
   downloadQr.download = "nurdin-adna-qr-kod.png";
 
   adminList.replaceChildren();
