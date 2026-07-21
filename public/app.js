@@ -175,7 +175,7 @@ function updateUploadLimitCopy() {
   const previous = Number(uploadRemaining.dataset.value ?? remaining);
   uploadRemaining.dataset.value = String(remaining);
   uploadRemaining.classList.toggle("is-counting", previous !== remaining);
-  uploadRemaining.textContent = `Možeš još dodati ${remaining} od ${max} slika`;
+  uploadRemaining.textContent = `Možeš još dodati ${remaining} od ${max} fajlova`;
   uploadLimitDetail.textContent =
     remaining > 0
       ? `Do sada si sa ovog uređaja poslao/la ${uploadStatus.uploaded || 0}.`
@@ -571,7 +571,7 @@ form.addEventListener("submit", async (event) => {
     return;
   }
   if (uploadStatus.remaining <= 0) {
-    statusEl.textContent = `Dosegli ste limit od ${uploadStatus.maxUploadsPerDevice} slika sa ovog uređaja.`;
+    statusEl.textContent = `Dosegli ste limit od ${uploadStatus.maxUploadsPerDevice} fajlova sa ovog uređaja.`;
     return;
   }
 
