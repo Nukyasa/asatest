@@ -3053,6 +3053,49 @@ h1 {
   background: #221b2b;
 }
 
+/* Make the hero copy readable over every part of the wedding photograph. */
+.intro .hero-backdrop {
+  background:
+    linear-gradient(105deg, rgba(24, 13, 30, .86) 0%, rgba(36, 20, 42, .68) 52%, rgba(22, 12, 29, .58) 100%),
+    var(--hero-image) !important;
+}
+
+.intro-copy,
+.intro-copy .lead,
+.intro h1,
+.intro .event-line span {
+  color: #fffdf7 !important;
+}
+
+.intro-copy .kicker {
+  color: #ffe3a9 !important;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, .5);
+}
+
+.intro h1 {
+  background: none !important;
+  -webkit-text-fill-color: #fffdf7 !important;
+  text-shadow: 0 4px 28px rgba(0, 0, 0, .62) !important;
+}
+
+.intro h1 .title-amp {
+  margin-inline: .18em;
+  color: #ffe3a9 !important;
+  -webkit-text-fill-color: #ffe3a9 !important;
+}
+
+.intro-copy .lead {
+  max-width: 520px;
+  font-weight: 600;
+  text-shadow: 0 3px 16px rgba(0, 0, 0, .62) !important;
+}
+
+.intro .event-line span {
+  border-color: rgba(255, 255, 255, .42) !important;
+  background: rgba(36, 20, 42, .48) !important;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, .2);
+}
+
 .gallery-section {
   position: relative;
   overflow: hidden;
