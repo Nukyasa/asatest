@@ -70,11 +70,11 @@ function formatBytes(bytes) {
 function updateUploadLimitCopy() {
   const max = uploadStatus.maxUploadsPerDevice || 10;
   const remaining = Math.max(0, Number(uploadStatus.remaining || 0));
-  uploadRemaining.textContent = `Mozes jos dodati ${remaining} od ${max} slika`;
+  uploadRemaining.textContent = `Možeš još dodati ${remaining} od ${max} slika`;
   uploadLimitDetail.textContent =
     remaining > 0
-      ? `Do sada si sa ovog uredjaja poslao/la ${uploadStatus.uploaded || 0}.`
-      : "Dosegnut je limit za ovaj uredjaj.";
+      ? `Do sada si sa ovog uređaja poslao/la ${uploadStatus.uploaded || 0}.`
+      : "Dosegnut je limit za ovaj uređaj.";
   submitButton.disabled = remaining <= 0;
 }
 
@@ -248,7 +248,7 @@ function uploadWithProgress(formData) {
       const percent = Math.max(5, Math.round((event.loaded / event.total) * 100));
       uploadProgressBar.style.width = `${percent}%`;
       progressCopy.hidden = false;
-      progressCopy.textContent = `Upload ${percent}% - saljemo fotografiju u galeriju`;
+      progressCopy.textContent = `Slanje ${percent}% – fotografija ide u galeriju`;
     });
 
     request.addEventListener("load", () => {
@@ -264,17 +264,17 @@ function uploadWithProgress(formData) {
         return;
       }
 
-      reject(new Error(payload.error || `Upload nije uspio (${request.status}).`));
+      reject(new Error(payload.error || `Slanje nije uspjelo (${request.status}).`));
     });
 
     request.addEventListener("timeout", () => {
-      reject(new Error("Upload traje predugo. Provjeri internet i pokusaj ponovo."));
+      reject(new Error("Slanje traje predugo. Provjeri internet i pokušaj ponovo."));
     });
     request.addEventListener("error", () => {
-      reject(new Error("Upload nije uspio. Provjeri internet konekciju."));
+      reject(new Error("Slanje nije uspjelo. Provjeri internet konekciju."));
     });
     request.addEventListener("abort", () => {
-      reject(new Error("Upload je prekinut."));
+      reject(new Error("Slanje je prekinuto."));
     });
 
     request.send(formData);
@@ -287,9 +287,9 @@ function friendlyUploadError(error) {
     return "Slika je prevelika. Probaj manju sliku ili screenshot.";
   }
   if (error.message.includes("format") || error.message.includes("Dozvoljene")) {
-    return "Format slike nije podrzan. Koristi JPG, PNG, WEBP ili GIF.";
+    return "Format slike nije podržan. Koristi JPG, PNG, WEBP ili GIF.";
   }
-  return error.message || "Upload nije uspio. Pokusaj ponovo.";
+  return error.message || "Slanje nije uspjelo. Pokušaj ponovo.";
 }
 
 function openLightbox(index) {
@@ -348,10 +348,15 @@ function startSlideshow() {
 fileInput.addEventListener("change", () => {
   const file = fileInput.files[0];
   fileLabel.textContent = file ? file.name : "Izaberi ili uslikaj fotografiju";
-  if (file && file.type.startsWith("image/")) {
+  if (file && file.size > MAX_UPLOAD_BYTES) {
+    clearPreview();
+    statusEl.textContent = "Slika je prevelika. Maksimalno je 60 MB.";
+  } else if (file && file.type.startsWith("image/")) {
+    statusEl.textContent = "";
     showPreview(file);
   } else {
     clearPreview();
+    if (file) statusEl.textContent = "Izabrani fajl nije slika.";
   }
 });
 
@@ -411,7 +416,7 @@ form.addEventListener("submit", async (event) => {
     return;
   }
   if (uploadStatus.remaining <= 0) {
-    statusEl.textContent = `Dosegli ste limit od ${uploadStatus.maxUploadsPerDevice} slika sa ovog uredjaja.`;
+    statusEl.textContent = `Dosegli ste limit od ${uploadStatus.maxUploadsPerDevice} slika sa ovog uređaja.`;
     return;
   }
 
@@ -430,24 +435,24 @@ form.addEventListener("submit", async (event) => {
   uploadProgress.hidden = false;
   uploadProgressBar.style.width = "4%";
   progressCopy.hidden = false;
-  progressCopy.textContent = "Priprema i optimizacija slike...";
-  submitButton.textContent = "Priprema slike...";
+  progressCopy.textContent = "Priprema i optimizacija slike…";
+  submitButton.textContent = "Priprema slike…";
 
   try {
     const hash = await fileHash(originalFile);
     const now = Date.now();
     if (hash === lastUploadHash && now - lastUploadAt < 60 * 1000) {
-      throw new Error("Ova slika je vec poslana. Pricekaj malo prije ponovnog pokusaja.");
+      throw new Error("Ova slika je već poslana. Pričekaj malo prije ponovnog pokušaja.");
     }
     if (now - lastUploadAt < UPLOAD_COOLDOWN_MS) {
-      throw new Error("Pricekaj par sekundi prije sljedeceg uploada.");
+      throw new Error("Pričekaj par sekundi prije sljedećeg slanja.");
     }
 
     const optimizedFile = await optimizeImage(originalFile);
     formData.set("photo", optimizedFile, optimizedFile.name);
     formData.set("originalPhoto", originalFile, originalFile.name);
     formData.set("originalHash", hash);
-    submitButton.textContent = "Upload traje...";
+    submitButton.textContent = "Slanje traje…";
 
     await uploadWithProgress(formData);
     lastUploadHash = hash;
@@ -456,15 +461,15 @@ form.addEventListener("submit", async (event) => {
     form.reset();
     clearPreview();
     uploadProgressBar.style.width = "100%";
-    progressCopy.textContent = "Upload zavrsen.";
-    statusEl.textContent = "Slika je dodana u galeriju. Hvala sto cuvas ovaj trenutak s nama.";
+    progressCopy.textContent = "Slanje završeno.";
+    statusEl.textContent = "Slika je dodana u galeriju. Hvala što čuvaš ovaj trenutak s nama.";
     await Promise.all([loadPhotos(), loadUploadStatus()]);
   } catch (error) {
     statusEl.textContent = friendlyUploadError(error);
     await loadUploadStatus().catch(() => {});
   } finally {
     submitButton.disabled = uploadStatus.remaining <= 0;
-    submitButton.textContent = "Posalji u galeriju";
+    submitButton.textContent = "Pošalji u galeriju";
     setTimeout(() => {
       uploadProgress.hidden = true;
       uploadProgressBar.style.width = "0%";
