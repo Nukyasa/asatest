@@ -47,6 +47,23 @@ PUBLIC_APP_URL=https://tvoj-render-link.onrender.com
 
 `ADMIN_SESSION_SECRET` Render moze generisati automatski preko `render.yaml`.
 
+## Optional: Google Drive za fotografije
+
+Google Drive se može uključiti kao primarni storage bez promjene Render hostinga. Supabase ostaje fallback ako Drive upload ne uspije.
+
+1. Napravi Google Cloud service account i uključi Google Drive API.
+2. Napravi folder u Google Driveu i podijeli ga sa service-account email adresom kao Editor.
+3. JSON credentials pretvori u Base64 i postavi na Renderu:
+
+```text
+STORAGE_MODE=drive
+GOOGLE_DRIVE_SERVICE_ACCOUNT_BASE64=tvoj-base64-json
+GOOGLE_DRIVE_FOLDER_ID=id-foldera
+GOOGLE_DRIVE_PUBLIC=true
+```
+
+Folder mora dozvoliti javno čitanje fotografija ako želiš da ih gosti vide u galeriji.
+
 ## 4. Provjera
 
 Nakon deploya otvori:
@@ -70,4 +87,3 @@ Zatim testiraj:
 - upload slike na javnoj stranici
 - admin login na `/admin.html`
 - backup dugme u adminu
-

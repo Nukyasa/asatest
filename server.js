@@ -62,12 +62,19 @@ const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY || "";
 const R2_BUCKET = process.env.R2_BUCKET || "wedding-photos";
 const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || "";
 const HAS_R2 = Boolean(R2_ACCOUNT_ID && R2_ACCESS_KEY_ID && R2_SECRET_ACCESS_KEY && R2_BUCKET && R2_PUBLIC_URL);
+const GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON = process.env.GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON || "";
+const GOOGLE_DRIVE_SERVICE_ACCOUNT_BASE64 = process.env.GOOGLE_DRIVE_SERVICE_ACCOUNT_BASE64 || "";
+const GOOGLE_DRIVE_FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID || "";
+const GOOGLE_DRIVE_PUBLIC = process.env.GOOGLE_DRIVE_PUBLIC !== "false";
+const HAS_GOOGLE_DRIVE = Boolean((GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON || GOOGLE_DRIVE_SERVICE_ACCOUNT_BASE64) && GOOGLE_DRIVE_FOLDER_ID);
 const STORAGE_MODE = process.env.STORAGE_MODE || (HAS_R2 ? "r2" : HAS_CLOUDINARY ? "cloudinary" : HAS_SUPABASE ? "supabase" : "local");
 const USE_SUPABASE_DB = HAS_SUPABASE && STORAGE_MODE !== "local";
 const CLOUD_PUBLIC_URL = process.env.CLOUD_PUBLIC_URL || "";
 const CLOUD_STORAGE_READY =
   STORAGE_MODE === "r2"
     ? HAS_R2
+    : STORAGE_MODE === "drive"
+      ? HAS_GOOGLE_DRIVE
     : STORAGE_MODE === "cloudinary"
       ? HAS_CLOUDINARY
       : STORAGE_MODE === "supabase"
@@ -429,6 +436,117 @@ async function uploadToSupabase(objectPath, content, contentType) {
   return supabasePublicUrl(objectPath);
 }
 
+function base64UrlEncode(value) {
+  return Buffer.from(value).toString("base64").replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+}
+
+function googleDriveServiceAccount() {
+  try {
+    const raw = GOOGLE_DRIVE_SERVICE_ACCOUNT_BASE64
+      ? Buffer.from(GOOGLE_DRIVE_SERVICE_ACCOUNT_BASE64, "base64").toString("utf8")
+      : GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON;
+    return JSON.parse(raw);
+  } catch {
+    throw new Error("Google Drive service account JSON nije ispravan.");
+  }
+}
+
+async function googleDriveAccessToken() {
+  if (!HAS_GOOGLE_DRIVE) {
+    throw new Error("Google Drive nije konfigurisan. Nedostaju service account i GOOGLE_DRIVE_FOLDER_ID.");
+  }
+
+  const account = googleDriveServiceAccount();
+  const now = Math.floor(Date.now() / 1000);
+  const header = base64UrlEncode(JSON.stringify({ alg: "RS256", typ: "JWT" }));
+  const claim = base64UrlEncode(JSON.stringify({
+    iss: account.client_email,
+    scope: "https://www.googleapis.com/auth/drive.file",
+    aud: "https://oauth2.googleapis.com/token",
+    iat: now,
+    exp: now + 3600
+  }));
+  const unsigned = `${header}.${claim}`;
+  const signer = crypto.createSign("RSA-SHA256");
+  signer.update(unsigned);
+  const signature = signer.sign(account.private_key, "base64")
+    .replace(/=/g, "")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_");
+  const response = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: `grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=${unsigned}.${signature}`
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || !payload.access_token) {
+    throw new Error(`Google Drive token nije dostupan: ${response.status} ${payload.error_description || ""}`.trim());
+  }
+  return payload.access_token;
+}
+
+function googleDrivePublicUrl(fileId) {
+  return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(fileId)}`;
+}
+
+async function uploadToGoogleDrive(objectPath, content, contentType) {
+  const token = await googleDriveAccessToken();
+  const boundary = `drive-${crypto.randomBytes(12).toString("hex")}`;
+  const metadata = Buffer.from(JSON.stringify({
+    name: path.basename(objectPath),
+    parents: [GOOGLE_DRIVE_FOLDER_ID]
+  }));
+  const body = Buffer.concat([
+    Buffer.from(`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n`),
+    metadata,
+    Buffer.from(`\r\n--${boundary}\r\nContent-Type: ${contentType}\r\n\r\n`),
+    content,
+    Buffer.from(`\r\n--${boundary}--`)
+  ]);
+  const response = await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id", {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${token}`,
+      "content-type": `multipart/related; boundary=${boundary}`
+    },
+    body
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || !payload.id) {
+    throw new Error(`Google Drive upload nije uspio: ${response.status} ${payload.error?.message || ""}`.trim());
+  }
+
+  if (GOOGLE_DRIVE_PUBLIC) {
+    const permissionResponse = await fetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(payload.id)}/permissions`, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${token}`,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({ role: "reader", type: "anyone" })
+    });
+    if (!permissionResponse.ok) {
+      const detail = await permissionResponse.text().catch(() => "");
+      throw new Error(`Google Drive dozvola nije podešena: ${permissionResponse.status} ${detail}`);
+    }
+  }
+
+  return { url: googleDrivePublicUrl(payload.id), fileId: payload.id };
+}
+
+async function deleteGoogleDriveAsset(fileId) {
+  if (!HAS_GOOGLE_DRIVE || !fileId) return;
+  try {
+    const token = await googleDriveAccessToken();
+    await fetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}`, {
+      method: "DELETE",
+      headers: { authorization: `Bearer ${token}` }
+    });
+  } catch (error) {
+    console.error(`Google Drive brisanje nije uspjelo za ${fileId}: ${error.message}`);
+  }
+}
+
 function cloudinarySignature(params) {
   const payload = Object.keys(params)
     .filter((key) => params[key] !== undefined && params[key] !== "")
@@ -632,6 +750,28 @@ async function deleteCloudinaryAsset(publicId) {
 async function saveUploadAsset({ id, kind, content, contentType, originalName }) {
   const extension = getExtensionFromMime(contentType, originalName);
   const filename = `${Date.now()}-${id}-${kind}${extension}`;
+
+  if (STORAGE_MODE === "drive") {
+    const objectPath = `${kind}/${filename}`;
+    try {
+      const uploaded = await uploadToGoogleDrive(objectPath, content, contentType);
+      return {
+        url: uploaded.url,
+        objectPath: uploaded.fileId,
+        filename,
+        storage: "drive"
+      };
+    } catch (error) {
+      if (!HAS_SUPABASE) throw error;
+      console.error(`Google Drive upload nije uspio, koristim Supabase fallback: ${error.message}`);
+      return {
+        url: await uploadToSupabase(objectPath, content, contentType),
+        objectPath,
+        filename,
+        storage: "supabase"
+      };
+    }
+  }
 
   if (STORAGE_MODE === "r2") {
     const objectPath = `${kind}/${filename}`;
@@ -939,6 +1079,12 @@ async function deletePhoto(id) {
     await Promise.all([
       deleteR2Asset(photo.optimizedObjectPath),
       deleteR2Asset(photo.originalObjectPath)
+    ]);
+  }
+  if (photo.storage === "drive") {
+    await Promise.all([
+      deleteGoogleDriveAsset(photo.optimizedObjectPath),
+      deleteGoogleDriveAsset(photo.originalObjectPath)
     ]);
   }
 
