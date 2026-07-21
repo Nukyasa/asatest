@@ -3925,6 +3925,29 @@ body.magic-entered .app-shell {
   opacity: 0.7;
 }
 
+/* Smooth heart curves: SVG clipping keeps the silhouette rounded at every size. */
+.magic-shapes {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.magic-door-frame::before,
+.magic-door-inside {
+  clip-path: url(#heart-shape);
+}
+
+.magic-door-left,
+.magic-door-left::before {
+  clip-path: url(#heart-left-shape);
+}
+
+.magic-door-right,
+.magic-door-right::before {
+  clip-path: url(#heart-right-shape);
+}
+
 /* Brighter romantic color pass */
 body {
   color: #392840;
