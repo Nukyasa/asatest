@@ -64,9 +64,18 @@ const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || "";
 const HAS_R2 = Boolean(R2_ACCOUNT_ID && R2_ACCESS_KEY_ID && R2_SECRET_ACCESS_KEY && R2_BUCKET && R2_PUBLIC_URL);
 const GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON = process.env.GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON || "";
 const GOOGLE_DRIVE_SERVICE_ACCOUNT_BASE64 = process.env.GOOGLE_DRIVE_SERVICE_ACCOUNT_BASE64 || "";
+const GOOGLE_DRIVE_CLIENT_ID = process.env.GOOGLE_DRIVE_CLIENT_ID || "";
+const GOOGLE_DRIVE_CLIENT_SECRET = process.env.GOOGLE_DRIVE_CLIENT_SECRET || "";
+const GOOGLE_DRIVE_REFRESH_TOKEN = process.env.GOOGLE_DRIVE_REFRESH_TOKEN || "";
 const GOOGLE_DRIVE_FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID || "";
 const GOOGLE_DRIVE_PUBLIC = process.env.GOOGLE_DRIVE_PUBLIC !== "false";
-const HAS_GOOGLE_DRIVE = Boolean((GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON || GOOGLE_DRIVE_SERVICE_ACCOUNT_BASE64) && GOOGLE_DRIVE_FOLDER_ID);
+const HAS_GOOGLE_DRIVE_OAUTH = Boolean(
+  GOOGLE_DRIVE_CLIENT_ID && GOOGLE_DRIVE_CLIENT_SECRET && GOOGLE_DRIVE_REFRESH_TOKEN && GOOGLE_DRIVE_FOLDER_ID
+);
+const HAS_GOOGLE_DRIVE_SERVICE_ACCOUNT = Boolean(
+  (GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON || GOOGLE_DRIVE_SERVICE_ACCOUNT_BASE64) && GOOGLE_DRIVE_FOLDER_ID
+);
+const HAS_GOOGLE_DRIVE = HAS_GOOGLE_DRIVE_OAUTH || HAS_GOOGLE_DRIVE_SERVICE_ACCOUNT;
 const STORAGE_MODE = process.env.STORAGE_MODE || (HAS_R2 ? "r2" : HAS_CLOUDINARY ? "cloudinary" : HAS_SUPABASE ? "supabase" : "local");
 const USE_SUPABASE_DB = HAS_SUPABASE && STORAGE_MODE !== "local";
 const CLOUD_PUBLIC_URL = process.env.CLOUD_PUBLIC_URL || "";
@@ -453,7 +462,25 @@ function googleDriveServiceAccount() {
 
 async function googleDriveAccessToken() {
   if (!HAS_GOOGLE_DRIVE) {
-    throw new Error("Google Drive nije konfigurisan. Nedostaju service account i GOOGLE_DRIVE_FOLDER_ID.");
+    throw new Error("Google Drive nije konfigurisan. Potrebni su OAuth podaci ili service account i GOOGLE_DRIVE_FOLDER_ID.");
+  }
+
+  if (HAS_GOOGLE_DRIVE_OAUTH) {
+    const response = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        client_id: GOOGLE_DRIVE_CLIENT_ID,
+        client_secret: GOOGLE_DRIVE_CLIENT_SECRET,
+        refresh_token: GOOGLE_DRIVE_REFRESH_TOKEN,
+        grant_type: "refresh_token"
+      })
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || !payload.access_token) {
+      throw new Error(`Google Drive OAuth token nije dostupan: ${response.status} ${payload.error_description || ""}`.trim());
+    }
+    return payload.access_token;
   }
 
   const account = googleDriveServiceAccount();
