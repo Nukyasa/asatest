@@ -6,6 +6,7 @@ const submitButton = document.querySelector("#submit-button");
 const uploadProgress = document.querySelector("#upload-progress");
 const uploadProgressBar = document.querySelector("#upload-progress-bar");
 const progressCopy = document.querySelector("#progress-copy");
+const successCelebration = document.querySelector("#success-celebration");
 const uploadRemaining = document.querySelector("#upload-remaining");
 const uploadLimitDetail = document.querySelector("#upload-limit-detail");
 const imagePreview = document.querySelector("#image-preview");
@@ -132,7 +133,8 @@ function renderPhotos() {
     const likeButton = node.querySelector(".like-button");
     const likeCount = node.querySelector(".like-count");
 
-    image.src = photo.url;
+    image.src = photo.optimizedUrl || photo.url;
+    image.decoding = "async";
     image.alt = photo.caption || `Slika koju je dodao ${photo.guest || "gost"}`;
     caption.textContent = photo.caption || "Svadbena uspomena";
     message.textContent = photo.message || "";
@@ -412,6 +414,8 @@ filterButtons.forEach((button) => {
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
   statusEl.textContent = "";
+  statusEl.classList.remove("is-success");
+  successCelebration.hidden = true;
 
   if (!fileInput.files.length) {
     statusEl.textContent = "Prvo izaberi sliku.";
@@ -465,6 +469,11 @@ form.addEventListener("submit", async (event) => {
     uploadProgressBar.style.width = "100%";
     progressCopy.textContent = "Slanje završeno.";
     statusEl.textContent = "Slika je dodana u galeriju. Hvala što čuvaš ovaj trenutak s nama.";
+    statusEl.classList.add("is-success");
+    successCelebration.hidden = false;
+    window.setTimeout(() => {
+      successCelebration.hidden = true;
+    }, 2200);
     await Promise.all([loadPhotos(), loadUploadStatus()]);
   } catch (error) {
     statusEl.textContent = friendlyUploadError(error);
