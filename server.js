@@ -103,15 +103,26 @@ const MIME_TYPES = {
   ".jpeg": "image/jpeg",
   ".webp": "image/webp",
   ".gif": "image/gif",
-  ".svg": "image/svg+xml"
+  ".svg": "image/svg+xml",
+  ".mp4": "video/mp4",
+  ".webm": "video/webm",
+  ".mov": "video/quicktime",
+  ".m4v": "video/x-m4v"
 };
 
-const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+const ALLOWED_MEDIA_TYPES = new Set([
+  "image/jpeg", "image/png", "image/webp", "image/gif",
+  "video/mp4", "video/webm", "video/quicktime", "video/x-m4v"
+]);
 const EXT_BY_MIME = {
   "image/jpeg": ".jpg",
   "image/png": ".png",
   "image/webp": ".webp",
-  "image/gif": ".gif"
+  "image/gif": ".gif",
+  "video/mp4": ".mp4",
+  "video/webm": ".webm",
+  "video/quicktime": ".mov",
+  "video/x-m4v": ".m4v"
 };
 
 fs.mkdirSync(PUBLIC_DIR, { recursive: true });
@@ -741,8 +752,9 @@ async function uploadToCloudinary({ publicId, content, contentType }) {
   formData.append("timestamp", String(timestamp));
   formData.append("signature", cloudinarySignature(params));
 
+  const resourceType = contentType.startsWith("video/") ? "video" : "image";
   const response = await fetch(
-    `https://api.cloudinary.com/v1_1/${encodeURIComponent(CLOUDINARY_CLOUD_NAME)}/image/upload`,
+    `https://api.cloudinary.com/v1_1/${encodeURIComponent(CLOUDINARY_CLOUD_NAME)}/${resourceType}/upload`,
     {
       method: "POST",
       body: formData
@@ -1178,14 +1190,14 @@ async function handleUpload(req, res) {
   const photoPart = optimizedPart || originalPart;
 
   if (!photoPart || photoPart.content.length === 0) {
-    sendError(res, 400, "Izaberi sliku za upload.");
+    sendError(res, 400, "Izaberi sliku ili video za upload.");
     return;
   }
 
   const optimizedType = (photoPart.headers["content-type"] || "").toLowerCase();
   const originalType = ((originalPart || photoPart).headers["content-type"] || "").toLowerCase();
-  if (!ALLOWED_IMAGE_TYPES.has(optimizedType) || !ALLOWED_IMAGE_TYPES.has(originalType)) {
-    sendError(res, 415, "Dozvoljene su JPG, PNG, WEBP i GIF slike.");
+  if (!ALLOWED_MEDIA_TYPES.has(optimizedType) || !ALLOWED_MEDIA_TYPES.has(originalType)) {
+    sendError(res, 415, "Dozvoljene su JPG, PNG, WEBP, GIF, MP4, WEBM i MOV datoteke.");
     return;
   }
 
@@ -1253,6 +1265,7 @@ async function handleUpload(req, res) {
     originalName,
     originalHash,
     optimizedHash,
+    mediaType: optimizedType,
     caption: getTextPart(parts, "caption", 120),
     guest: getTextPart(parts, "guest", 60),
     message: getTextPart(parts, "message", 240),

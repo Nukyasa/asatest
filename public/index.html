@@ -108,15 +108,16 @@
           </div>
 
           <label class="file-drop" for="photo">
-            <input id="photo" name="photo" type="file" accept="image/*" required />
+            <input id="photo" name="photo" type="file" accept="image/*,video/*" required />
             <span class="file-icon" aria-hidden="true">+</span>
             <span>
-              <strong id="file-label">Izaberi ili uslikaj fotografiju</strong>
-              <small>JPG, PNG, WEBP ili GIF do 18 MB</small>
+              <strong id="file-label">Izaberi fotografiju ili video</strong>
+              <small>JPG, PNG, WEBP, GIF, MP4 ili WEBM do 60 MB</small>
             </span>
           </label>
           <div class="image-preview" id="image-preview" hidden>
             <img id="preview-image" alt="Pregled izabrane fotografije" />
+            <video id="preview-video" controls muted playsinline preload="metadata" hidden></video>
             <div>
               <strong id="preview-name">Izabrana fotografija</strong>
               <span id="preview-size"></span>
@@ -218,8 +219,9 @@
 
     <template id="photo-template">
       <article class="photo-card">
-        <button class="photo-link" type="button">
-          <img alt="" loading="lazy" />
+          <button class="photo-link" type="button">
+            <img alt="" loading="lazy" />
+            <video muted playsinline preload="metadata" hidden></video>
         </button>
         <div class="photo-meta">
           <p class="caption"></p>
@@ -238,6 +240,7 @@
       <button class="lightbox-nav lightbox-prev" type="button" aria-label="Prethodna slika">‹</button>
       <figure>
         <img id="lightbox-image" alt="" />
+        <video id="lightbox-video" controls playsinline preload="metadata" hidden></video>
         <figcaption>
           <strong id="lightbox-caption"></strong>
           <span id="lightbox-meta"></span>

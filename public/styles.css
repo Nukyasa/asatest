@@ -3731,6 +3731,44 @@ body.magic-entered .app-shell {
   }
 }
 
+/* Final readability and media support pass. */
+.intro-copy {
+  justify-content: center;
+  text-align: center;
+  align-items: center;
+}
+
+.intro-copy .lead { color: rgba(255, 253, 249, .98); }
+.intro-copy .kicker { color: #f2c6d9; }
+.intro-copy .event-line,
+.intro-copy .landing-actions,
+.intro-copy .countdown { width: 100%; }
+.intro-copy .event-line,
+.intro-copy .landing-actions { justify-content: center; }
+.intro-copy .countdown { text-align: left; }
+.intro-copy h1 { color: #fffdf8; text-shadow: 0 4px 24px rgba(0,0,0,.52); }
+
+.photo-link img,
+.photo-link video,
+.image-preview img,
+.image-preview video,
+.lightbox figure > img,
+.lightbox figure > video,
+.admin-photo-row img,
+.admin-photo-row video {
+  display: block;
+  width: 100%;
+  object-fit: cover;
+}
+
+.photo-link video { height: 100%; }
+.image-preview video { max-height: 220px; border-radius: 12px; }
+.lightbox figure > video { max-width: 100%; max-height: 72vh; border-radius: 14px; background: #100b16; }
+.admin-photo-row video { width: 96px; height: 96px; border-radius: 6px; }
+.photo-link [hidden],
+.image-preview [hidden],
+.lightbox figure [hidden] { display: none !important; }
+
 /* Complete visual redesign: warm editorial wedding studio system. */
 :root {
   --ink: #2b2030;
@@ -4249,6 +4287,41 @@ body::after {
     justify-self: stretch;
   }
 }
+
+/* Final readability and media support pass: keep these rules last. */
+.intro-copy {
+  justify-content: center;
+  text-align: center;
+  align-items: center;
+}
+
+.intro-copy .lead { color: rgba(255, 253, 249, .98); }
+.intro-copy .kicker { color: #f2c6d9; }
+.intro-copy .event-line,
+.intro-copy .landing-actions,
+.intro-copy .countdown { width: 100%; }
+.intro-copy .event-line,
+.intro-copy .landing-actions { justify-content: center; }
+.intro-copy .countdown { text-align: left; }
+.intro-copy h1 { color: #fffdf8; text-shadow: 0 4px 24px rgba(0,0,0,.52); }
+
+.photo-link img,
+.photo-link video,
+.image-preview img,
+.image-preview video,
+.lightbox figure > img,
+.lightbox figure > video,
+.admin-photo-row img,
+.admin-photo-row video {
+  display: block;
+  width: 100%;
+  object-fit: cover;
+}
+
+.photo-link video { height: 100%; }
+.image-preview video { max-height: 220px; border-radius: 12px; }
+.lightbox figure > video { max-width: 100%; max-height: 72vh; border-radius: 14px; background: #100b16; }
+.admin-photo-row video { width: 96px; height: 96px; border-radius: 6px; }
 
 @media (max-width: 520px) {
   .app-shell {

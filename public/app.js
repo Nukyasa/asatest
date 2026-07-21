@@ -11,6 +11,7 @@ const uploadRemaining = document.querySelector("#upload-remaining");
 const uploadLimitDetail = document.querySelector("#upload-limit-detail");
 const imagePreview = document.querySelector("#image-preview");
 const previewImage = document.querySelector("#preview-image");
+const previewVideo = document.querySelector("#preview-video");
 const previewName = document.querySelector("#preview-name");
 const previewSize = document.querySelector("#preview-size");
 const previewRemove = document.querySelector("#preview-remove");
@@ -25,6 +26,7 @@ const slideshowButton = document.querySelector("#start-slideshow");
 const slideshowPanel = document.querySelector(".slideshow-panel");
 const lightbox = document.querySelector("#lightbox");
 const lightboxImage = document.querySelector("#lightbox-image");
+const lightboxVideo = document.querySelector("#lightbox-video");
 const lightboxCaption = document.querySelector("#lightbox-caption");
 const lightboxMeta = document.querySelector("#lightbox-meta");
 const lightboxMessage = document.querySelector("#lightbox-message");
@@ -193,16 +195,24 @@ function clearPreview() {
   previewObjectUrl = "";
   imagePreview.hidden = true;
   previewImage.removeAttribute("src");
-  previewName.textContent = "Izabrana fotografija";
+  previewVideo.removeAttribute("src");
+  previewVideo.hidden = true;
+  previewVideo.load();
+  previewImage.hidden = false;
+  previewName.textContent = "Izabrana fotografija ili video";
   previewSize.textContent = "";
   fileInput.value = "";
-  fileLabel.textContent = "Izaberi ili uslikaj fotografiju";
+  fileLabel.textContent = "Izaberi fotografiju ili video";
 }
 
 function showPreview(file) {
   if (previewObjectUrl) URL.revokeObjectURL(previewObjectUrl);
   previewObjectUrl = URL.createObjectURL(file);
-  previewImage.src = previewObjectUrl;
+  const isVideo = file.type.startsWith("video/");
+  previewImage.hidden = isVideo;
+  previewVideo.hidden = !isVideo;
+  if (isVideo) previewVideo.src = previewObjectUrl;
+  else previewImage.src = previewObjectUrl;
   previewName.textContent = file.name;
   previewSize.textContent = formatBytes(file.size);
   imagePreview.hidden = false;
@@ -228,13 +238,19 @@ function renderPhotos() {
     const card = node.querySelector(".photo-card");
     const openButton = node.querySelector(".photo-link");
     const image = node.querySelector("img");
+    const video = node.querySelector("video");
     const caption = node.querySelector(".caption");
     const message = node.querySelector(".message");
     const guest = node.querySelector(".guest");
     const likeButton = node.querySelector(".like-button");
     const likeCount = node.querySelector(".like-count");
 
-    image.src = photo.optimizedUrl || photo.url;
+    const mediaUrl = photo.optimizedUrl || photo.url;
+    const isVideo = String(photo.mediaType || photo.mimeType || "").startsWith("video/");
+    image.hidden = isVideo;
+    video.hidden = !isVideo;
+    if (isVideo) video.src = mediaUrl;
+    else image.src = mediaUrl;
     image.addEventListener("error", () => {
       const fallback = photo.originalUrl || photo.url;
       if (image.src !== fallback) image.src = fallback;
@@ -409,7 +425,18 @@ function openLightbox(index) {
   if (!visiblePhotos.length) return;
   activeIndex = index;
   const photo = visiblePhotos[activeIndex];
-  lightboxImage.src = photo.optimizedUrl || photo.url;
+  const mediaUrl = photo.optimizedUrl || photo.url;
+  const isVideo = String(photo.mediaType || photo.mimeType || "").startsWith("video/");
+  lightboxImage.hidden = isVideo;
+  lightboxVideo.hidden = !isVideo;
+  if (isVideo) {
+    lightboxVideo.src = mediaUrl;
+    lightboxVideo.currentTime = 0;
+  } else {
+    lightboxVideo.removeAttribute("src");
+    lightboxVideo.load();
+    lightboxImage.src = mediaUrl;
+  }
   lightboxImage.alt = photo.caption || "Svadbena slika";
   lightboxCaption.textContent = photo.caption || "Svadbena uspomena";
   lightboxMeta.textContent = `${photo.guest || "Gost"} - ${photo.likes || 0} srca`;
@@ -460,16 +487,16 @@ function startSlideshow() {
 
 fileInput.addEventListener("change", () => {
   const file = fileInput.files[0];
-  fileLabel.textContent = file ? file.name : "Izaberi ili uslikaj fotografiju";
+  fileLabel.textContent = file ? file.name : "Izaberi fotografiju ili video";
   if (file && file.size > MAX_UPLOAD_BYTES) {
     clearPreview();
     statusEl.textContent = "Slika je prevelika. Maksimalno je 60 MB.";
-  } else if (file && file.type.startsWith("image/")) {
+  } else if (file && (file.type.startsWith("image/") || file.type.startsWith("video/"))) {
     statusEl.textContent = "";
     showPreview(file);
   } else {
     clearPreview();
-    if (file) statusEl.textContent = "Izabrani fajl nije slika.";
+    if (file) statusEl.textContent = "Izaberi sliku ili video fajl.";
   }
 });
 
@@ -540,7 +567,7 @@ form.addEventListener("submit", async (event) => {
   successCelebration.hidden = true;
 
   if (!fileInput.files.length) {
-    statusEl.textContent = "Prvo izaberi sliku.";
+    statusEl.textContent = "Prvo izaberi sliku ili video.";
     return;
   }
   if (uploadStatus.remaining <= 0) {
@@ -550,12 +577,12 @@ form.addEventListener("submit", async (event) => {
 
   const formData = new FormData(form);
   const originalFile = fileInput.files[0];
-  if (!originalFile.type.startsWith("image/")) {
-    statusEl.textContent = "Izabrani fajl nije slika.";
+  if (!originalFile.type.startsWith("image/") && !originalFile.type.startsWith("video/")) {
+    statusEl.textContent = "Izaberi sliku ili video fajl.";
     return;
   }
   if (originalFile.size > MAX_UPLOAD_BYTES) {
-    statusEl.textContent = "Slika je prevelika. Maksimalno je 60 MB.";
+    statusEl.textContent = "Fajl je prevelik. Maksimalno je 60 MB.";
     return;
   }
 
@@ -563,8 +590,8 @@ form.addEventListener("submit", async (event) => {
   uploadProgress.hidden = false;
   uploadProgressBar.style.width = "4%";
   progressCopy.hidden = false;
-  progressCopy.textContent = "Priprema i optimizacija slike…";
-  submitButton.textContent = "Priprema slike…";
+  progressCopy.textContent = originalFile.type.startsWith("video/") ? "Priprema videa..." : "Priprema slike...";
+  submitButton.textContent = "Priprema fajla...";
 
   try {
     const hash = await fileHash(originalFile);
@@ -590,7 +617,7 @@ form.addEventListener("submit", async (event) => {
     clearPreview();
     uploadProgressBar.style.width = "100%";
     progressCopy.textContent = "Slanje završeno.";
-    statusEl.textContent = "Slika je dodana u galeriju. Hvala što čuvaš ovaj trenutak s nama.";
+    statusEl.textContent = `${originalFile.type.startsWith("video/") ? "Video" : "Slika"} je dodan/a u galeriju. Hvala što čuvaš ovaj trenutak s nama.`;
     statusEl.classList.add("is-success");
     successCelebration.hidden = false;
     burstConfetti(form);

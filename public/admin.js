@@ -23,9 +23,16 @@ function rowTemplate(photo) {
   const row = document.createElement("article");
   row.className = "admin-photo-row";
 
-  const image = document.createElement("img");
+  const isVideo = String(photo.mediaType || photo.mimeType || "").startsWith("video/");
+  const image = document.createElement(isVideo ? "video" : "img");
   image.src = photo.url;
-  image.alt = "";
+  image.alt = isVideo ? "Svadbeni video" : "";
+  if (isVideo) {
+    image.controls = true;
+    image.muted = true;
+    image.playsInline = true;
+    image.preload = "metadata";
+  }
   image.addEventListener("error", () => {
     const fallback = photo.optimizedUrl || photo.originalUrl;
     if (fallback && image.src !== fallback) image.src = fallback;
