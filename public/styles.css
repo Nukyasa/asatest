@@ -3096,6 +3096,112 @@ h1 {
   box-shadow: 0 8px 20px rgba(0, 0, 0, .2);
 }
 
+/* Restore the original warm morning composition. */
+body {
+  color: #211c18 !important;
+  background:
+    linear-gradient(90deg, rgba(24, 18, 15, .42) 0%, rgba(24, 18, 15, .18) 38%, rgba(255, 249, 243, .92) 72%),
+    url("https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=1600&q=82") center / cover fixed !important;
+}
+
+.app-shell {
+  width: min(1120px, calc(100% - 32px)) !important;
+  padding: 22px 0 64px !important;
+}
+
+.topbar {
+  position: static !important;
+  min-height: 60px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  color: #fffaf4 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+.brand,
+.topbar p,
+.admin-link {
+  color: #fffaf4 !important;
+  background: rgba(33, 28, 24, .22) !important;
+  border-color: rgba(255, 250, 244, .46) !important;
+  box-shadow: 0 12px 34px rgba(33, 28, 24, .16) !important;
+}
+
+.intro {
+  min-height: min(720px, calc(100vh - 82px)) !important;
+  grid-template-columns: minmax(0, 1fr) minmax(350px, 420px) !important;
+  gap: 44px !important;
+  align-items: center !important;
+  padding: 30px 0 58px !important;
+  margin-top: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.intro .hero-backdrop {
+  inset: 0 !important;
+  border-radius: 0 !important;
+  background:
+    linear-gradient(90deg, rgba(24, 18, 15, .58) 0%, rgba(24, 18, 15, .3) 52%, rgba(255, 249, 243, .08) 100%),
+    var(--hero-image) center / cover !important;
+}
+
+.intro-copy {
+  max-width: 680px !important;
+  align-items: flex-start !important;
+  justify-content: flex-start !important;
+  padding: 0 !important;
+  text-align: left !important;
+  color: #fffaf4 !important;
+  text-shadow: 0 2px 26px rgba(33, 28, 24, .38) !important;
+}
+
+.intro h1 {
+  max-width: 100% !important;
+  font-size: clamp(3.3rem, 11vw, 8.5rem) !important;
+  line-height: .88 !important;
+  letter-spacing: -.06em !important;
+  color: #fffaf4 !important;
+  -webkit-text-fill-color: #fffaf4 !important;
+  text-shadow: 0 2px 20px rgba(0, 0, 0, .42) !important;
+}
+
+.intro h1 .title-amp { margin-inline: .16em !important; color: #f4d9b8 !important; -webkit-text-fill-color: #f4d9b8 !important; }
+.intro-copy .lead { max-width: 520px !important; color: rgba(255, 250, 244, .92) !important; font-weight: 400 !important; }
+.intro-copy .kicker { color: #f4d9b8 !important; }
+.intro .event-line { width: auto !important; justify-content: flex-start !important; }
+.intro .event-line span { color: #fffaf4 !important; background: rgba(33, 28, 24, .22) !important; border-color: rgba(255, 250, 244, .34) !important; }
+
+.upload-panel {
+  align-self: center !important;
+  width: 100% !important;
+  max-width: 420px !important;
+  padding: 24px !important;
+  border: 1px solid rgba(255, 250, 244, .52) !important;
+  border-radius: 8px !important;
+  background: linear-gradient(180deg, rgba(255, 253, 249, .96), rgba(250, 241, 233, .9)) !important;
+  box-shadow: 0 24px 70px rgba(47, 31, 22, .2) !important;
+}
+
+.feature-strip { grid-template-columns: 1fr !important; margin: 0 0 24px !important; }
+.welcome-panel, .gallery-section { border-radius: 8px !important; }
+
+@media (max-width: 760px) {
+  .app-shell { width: min(100% - 22px, 640px) !important; }
+  .intro {
+    grid-template-columns: 1fr !important;
+    min-height: auto !important;
+    gap: 24px !important;
+    padding: 48px 0 38px !important;
+  }
+  .intro-copy { max-width: none !important; }
+  .upload-panel { max-width: none !important; }
+}
+
 .gallery-section {
   position: relative;
   overflow: hidden;
