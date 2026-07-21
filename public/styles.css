@@ -3871,6 +3871,60 @@ body.magic-entered .app-shell {
   border-radius: 999px 999px 0 0;
 }
 
+/* Heart-shaped doorway: both leaves and the frame share one silhouette. */
+.magic-door-frame {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  isolation: isolate;
+}
+
+.magic-door-frame::before {
+  content: "";
+  position: absolute;
+  inset: -8px;
+  z-index: 0;
+  background: #c99a63;
+  clip-path: polygon(50% 18%, 42% 8%, 32% 2%, 22% 2%, 12% 7%, 4% 17%, 0 28%, 0 40%, 50% 100%, 100% 40%, 100% 28%, 96% 17%, 88% 7%, 78% 2%, 68% 2%, 58% 8%);
+  filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.78)) drop-shadow(0 0 26px rgba(194, 123, 170, 0.42));
+}
+
+.magic-door-inside {
+  z-index: 1;
+  clip-path: polygon(50% 21%, 42% 12%, 32% 6%, 22% 6%, 13% 11%, 6% 21%, 3% 31%, 3% 39%, 50% 96%, 97% 39%, 97% 31%, 94% 21%, 87% 11%, 78% 6%, 68% 6%, 58% 12%);
+}
+
+.magic-door-left,
+.magic-door-right {
+  z-index: 2;
+  border: 0;
+  border-radius: 0;
+  clip-path: polygon(100% 18%, 84% 8%, 68% 2%, 52% 3%, 36% 8%, 20% 16%, 7% 28%, 0 40%, 100% 100%);
+}
+
+.magic-door-right {
+  clip-path: polygon(0 18%, 16% 8%, 32% 2%, 48% 3%, 64% 8%, 80% 16%, 93% 28%, 100% 40%, 0 100%);
+}
+
+.magic-door-left::before,
+.magic-door-right::before {
+  inset: 10% 12% 0;
+  border: 1px solid rgba(255, 245, 225, 0.62);
+  border-radius: 0;
+  clip-path: polygon(100% 23%, 84% 13%, 68% 7%, 52% 8%, 36% 13%, 20% 21%, 7% 33%, 0 45%, 100% 100%);
+}
+
+.magic-door-right::before {
+  clip-path: polygon(0 23%, 16% 13%, 32% 7%, 48% 8%, 64% 13%, 80% 21%, 93% 33%, 100% 45%, 0 100%);
+}
+
+.magic-door-frame::after {
+  left: -10%;
+  right: -10%;
+  bottom: -20px;
+  opacity: 0.7;
+}
+
 /* Brighter romantic color pass */
 body {
   color: #392840;
@@ -4042,7 +4096,7 @@ body::before {
 .magic-door-frame {
   border-color: #c99a63;
   background: transparent;
-  box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.54), 0 0 70px rgba(194, 123, 170, 0.42);
+  box-shadow: none;
 }
 
 .magic-door {
