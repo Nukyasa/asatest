@@ -13,6 +13,8 @@ const statusBackupSync = document.querySelector("#status-backup-sync");
 const statusBackupAuto = document.querySelector("#status-backup-auto");
 const statusBackupLatest = document.querySelector("#status-backup-latest");
 const statusGuests = document.querySelector("#status-guests");
+const qrImage = document.querySelector("#admin-qr-image");
+const downloadQr = document.querySelector("#download-qr");
 const refreshButton = document.querySelector("#refresh-admin");
 const runBackupButton = document.querySelector("#run-backup");
 const logoutButton = document.querySelector("#admin-logout");
@@ -81,13 +83,21 @@ function renderStatus(status) {
 }
 
 async function loadAdmin() {
-  const [photosResponse, statusResponse] = await Promise.all([
+  const [photosResponse, statusResponse, configResponse] = await Promise.all([
     fetch("/api/photos"),
-    fetch("/api/admin/status")
+    fetch("/api/admin/status"),
+    fetch("/api/config")
   ]);
   const photos = await photosResponse.json();
   const status = await statusResponse.json();
+  const config = await configResponse.json();
   renderStatus(status);
+
+  const galleryUrl = config.publicAppUrl || window.location.origin;
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=900x900&margin=24&ecc=M&format=png&data=${encodeURIComponent(galleryUrl)}`;
+  qrImage.src = qrUrl;
+  downloadQr.href = qrUrl;
+  downloadQr.download = "nurdin-adna-qr-kod.png";
 
   adminList.replaceChildren();
   if (!photos.length) {
