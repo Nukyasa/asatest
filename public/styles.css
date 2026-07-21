@@ -3732,6 +3732,49 @@ body.magic-entered .app-shell {
 }
 
 /* Final readability and media support pass. */
+.intro-copy,
+.intro-copy .lead,
+.intro-copy h1,
+.intro-copy .event-line span {
+  color: #fffdf8 !important;
+}
+
+.intro-copy .kicker { color: #f4c8dc !important; }
+.intro-copy .event-line span {
+  border-color: rgba(255, 238, 222, .42) !important;
+  background: rgba(255, 238, 222, .14) !important;
+}
+
+.countdown {
+  display: flex !important;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  text-align: center !important;
+}
+
+.countdown > div {
+  min-width: 96px;
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 238, 222, .42);
+  border-radius: 15px;
+  color: #fffdf8;
+  background: rgba(48, 24, 52, .56) !important;
+  box-shadow: 0 10px 24px rgba(16, 7, 22, .18);
+  backdrop-filter: blur(12px);
+}
+
+.countdown > div + div { border-left: 1px solid rgba(255, 238, 222, .42) !important; }
+.countdown > div strong { color: #fff3d8 !important; }
+.countdown > div span { color: rgba(255, 248, 237, .78) !important; }
+
+.feature-strip:has(> :only-child) { grid-template-columns: 1fr; }
+
 .intro-copy {
   justify-content: center;
   text-align: center;

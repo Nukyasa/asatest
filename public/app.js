@@ -462,7 +462,7 @@ function stopSlideshow() {
   if (slideshowTimer) {
     clearInterval(slideshowTimer);
     slideshowTimer = null;
-    slideshowButton.textContent = "Pokreni slideshow";
+    if (slideshowButton) slideshowButton.textContent = "Pokreni slideshow";
   }
   if (slideshowRefreshTimer) {
     clearInterval(slideshowRefreshTimer);
@@ -639,13 +639,12 @@ form.addEventListener("submit", async (event) => {
   }
 });
 
-slideshowButton.addEventListener("click", () => {
-  if (slideshowTimer) {
-    stopSlideshow();
-  } else {
-    startSlideshow();
-  }
-});
+if (slideshowButton) {
+  slideshowButton.addEventListener("click", () => {
+    if (slideshowTimer) stopSlideshow();
+    else startSlideshow();
+  });
+}
 
 lightboxClose.addEventListener("click", closeLightbox);
 lightboxPrev.addEventListener("click", () => showPhoto(-1));
