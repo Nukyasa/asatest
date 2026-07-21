@@ -3773,3 +3773,88 @@ body.magic-entered .app-shell {
   .magic-door-left { transform: rotateY(-100deg); }
   .magic-door-right { transform: rotateY(100deg); }
 }
+
+/* Refined double-door geometry and color balance */
+.magic-door-frame {
+  overflow: visible;
+  background: #21152e;
+}
+
+.magic-door {
+  top: 0;
+  bottom: 0;
+  inset-block: 0;
+  width: 50%;
+  height: 100%;
+  box-sizing: border-box;
+  border: 0;
+  background: linear-gradient(145deg, #69445e 0%, #362342 48%, #171128 100%);
+  box-shadow: inset 0 0 0 1px rgba(255, 229, 183, 0.18), inset 0 0 26px rgba(10, 6, 19, 0.52);
+}
+
+.magic-door-left {
+  left: 0;
+  right: auto;
+  border-radius: 168px 0 0 0;
+  border-right: 1px solid rgba(255, 221, 171, 0.32);
+}
+
+.magic-door-right {
+  left: auto;
+  right: 0;
+  border-radius: 0 168px 0 0;
+  border-left: 1px solid rgba(255, 221, 171, 0.32);
+  background: linear-gradient(215deg, #69445e 0%, #362342 48%, #171128 100%);
+}
+
+.magic-door::before {
+  inset: 17px 14px 0;
+  border: 1px solid rgba(255, 230, 186, 0.28);
+  border-bottom: 0;
+  border-radius: 142px 142px 0 0;
+}
+
+.magic-door::after {
+  content: "";
+  position: absolute;
+  top: 53%;
+  width: 11px;
+  height: 11px;
+  border: 2px solid #ffe7af;
+  border-radius: 50%;
+  background: #9b6d55;
+  box-shadow: 0 0 12px rgba(255, 226, 165, 0.72);
+}
+
+.magic-door-left::after { right: 13px; }
+.magic-door-right::after { left: 13px; }
+
+.magic-door span {
+  top: 42%;
+  color: rgba(255, 230, 185, 0.68);
+  font-size: 2.5rem;
+  text-shadow: 0 0 18px rgba(255, 215, 160, 0.22);
+}
+
+.magic-door-inside {
+  z-index: 0;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 50% 62%, rgba(255, 241, 189, 0.98) 0, rgba(218, 146, 255, 0.58) 22%, transparent 62%),
+    linear-gradient(180deg, #33205c, #0b0815 84%);
+}
+
+.magic-door-inside::after {
+  content: "";
+  position: absolute;
+  inset: 10% 18% 0;
+  border-radius: 50% 50% 0 0;
+  box-shadow: 0 0 70px rgba(255, 226, 168, 0.68);
+  pointer-events: none;
+}
+
+.magic-door-inside span {
+  position: relative;
+  z-index: 1;
+  color: #fff5ce;
+}
