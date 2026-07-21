@@ -47,8 +47,8 @@ let lastUploadAt = 0;
 let previewObjectUrl = "";
 let uploadStatus = {
   uploaded: 0,
-  remaining: 10,
-  maxUploadsPerDevice: 10
+  remaining: 50,
+  maxUploadsPerDevice: 50
 };
 const OPTIMIZED_MAX_SIZE = 1800;
 const OPTIMIZED_QUALITY = 0.82;
@@ -70,7 +70,7 @@ function formatBytes(bytes) {
 }
 
 function updateUploadLimitCopy() {
-  const max = uploadStatus.maxUploadsPerDevice || 10;
+  const max = uploadStatus.maxUploadsPerDevice || 50;
   const remaining = Math.max(0, Number(uploadStatus.remaining || 0));
   uploadRemaining.textContent = `Možeš još dodati ${remaining} od ${max} slika`;
   uploadLimitDetail.textContent =
