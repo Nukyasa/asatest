@@ -21,6 +21,7 @@ const popularSection = document.querySelector("#popular-section");
 const popularGrid = document.querySelector("#popular-grid");
 const filterButtons = document.querySelectorAll(".filter-button");
 const slideshowButton = document.querySelector("#start-slideshow");
+const slideshowPanel = document.querySelector(".slideshow-panel");
 const lightbox = document.querySelector("#lightbox");
 const lightboxImage = document.querySelector("#lightbox-image");
 const lightboxCaption = document.querySelector("#lightbox-caption");
@@ -114,6 +115,7 @@ function getVisiblePhotos() {
 
 function renderPhotos() {
   visiblePhotos = getVisiblePhotos();
+  slideshowPanel?.classList.toggle("is-empty", allPhotos.length === 0);
   gallery.replaceChildren();
   photoCount.textContent = formatCount(visiblePhotos.length);
   emptyState.hidden = visiblePhotos.length > 0;
