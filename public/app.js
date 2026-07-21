@@ -35,6 +35,9 @@ const hideSlideshowMessages = document.querySelector("#hide-slideshow-messages")
 const countdownDays = document.querySelector("#countdown-days");
 const countdownHours = document.querySelector("#countdown-hours");
 const countdownMinutes = document.querySelector("#countdown-minutes");
+const magicEntry = document.querySelector("#magic-entry");
+const magicEnter = document.querySelector("#magic-enter");
+const magicStars = document.querySelector("#magic-stars");
 
 let allPhotos = [];
 let visiblePhotos = [];
@@ -56,6 +59,52 @@ const MAX_UPLOAD_BYTES = 60 * 1024 * 1024;
 const UPLOAD_COOLDOWN_MS = 3500;
 const WEDDING_DATE = new Date("2026-07-25T16:00:00+02:00");
 const HERO_IMAGE_CANDIDATES = ["/hero-custom.jpg", "/hero-custom.jpeg", "/hero-custom.png", "/hero-custom.webp"];
+
+function setupMagicEntry() {
+  if (!magicEntry || !magicEnter) return;
+  const starCount = window.innerWidth < 600 ? 18 : 34;
+  for (let index = 0; index < starCount; index += 1) {
+    const star = document.createElement("span");
+    star.style.setProperty("--star-x", `${Math.random() * 100}%`);
+    star.style.setProperty("--star-y", `${Math.random() * 100}%`);
+    star.style.setProperty("--star-delay", `${Math.random() * 2.5}s`);
+    star.style.setProperty("--star-size", `${2 + Math.random() * 4}px`);
+    magicStars.appendChild(star);
+  }
+
+  const dismissEntry = () => {
+    magicEntry.classList.add("is-opening");
+    document.body.classList.add("magic-entered");
+    window.setTimeout(() => magicEntry.classList.add("is-dismissed"), 1450);
+    try {
+      window.sessionStorage.setItem("nurdin-adna-magic-entry", "seen");
+    } catch {
+      // Private browsing can disable sessionStorage; the animation still works.
+    }
+  };
+
+  magicEnter.addEventListener("click", dismissEntry, { once: true });
+  magicEntry.addEventListener("click", (event) => {
+    if (event.target === magicEntry) dismissEntry();
+  });
+}
+
+function setupHeroTilt() {
+  const hero = document.querySelector(".intro");
+  if (!hero || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  hero.addEventListener("pointermove", (event) => {
+    if (window.innerWidth < 760) return;
+    const bounds = hero.getBoundingClientRect();
+    const x = (event.clientX - bounds.left) / bounds.width - 0.5;
+    const y = (event.clientY - bounds.top) / bounds.height - 0.5;
+    hero.style.setProperty("--tilt-x", `${(y * -2).toFixed(2)}deg`);
+    hero.style.setProperty("--tilt-y", `${(x * 2).toFixed(2)}deg`);
+  });
+  hero.addEventListener("pointerleave", () => {
+    hero.style.setProperty("--tilt-x", "0deg");
+    hero.style.setProperty("--tilt-y", "0deg");
+  });
+}
 
 function formatCount(count) {
   if (count === 1) return "1 slika";
@@ -521,6 +570,8 @@ document.addEventListener("keydown", (event) => {
 
 startIntroAnimation();
 setupHeroImage();
+setupMagicEntry();
+setupHeroTilt();
 loadUploadStatus().catch((error) => {
   uploadRemaining.textContent = "Limit nije dostupan";
   uploadLimitDetail.textContent = error.message;
