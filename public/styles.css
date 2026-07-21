@@ -3859,6 +3859,18 @@ body.magic-entered .app-shell {
   color: #fff5ce;
 }
 
+/* Each leaf is a matching half-arch, not a square panel. */
+.magic-door {
+  overflow: hidden;
+  border-radius: 999px 999px 0 0;
+  clip-path: inset(0 round 999px 999px 0 0);
+}
+
+.magic-door-left,
+.magic-door-right {
+  border-radius: 999px 999px 0 0;
+}
+
 /* Brighter romantic color pass */
 body {
   color: #392840;
