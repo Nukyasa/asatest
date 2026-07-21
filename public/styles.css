@@ -3958,6 +3958,250 @@ body.magic-entered .app-shell {
   display: none;
 }
 
+/* Premium hero depth and motion pass */
+.intro {
+  overflow: hidden;
+  background: transparent;
+}
+
+.hero-backdrop {
+  position: absolute;
+  inset: -12% -5%;
+  z-index: -3;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(8, 6, 14, 0.78) 0%, rgba(20, 12, 29, 0.42) 44%, rgba(20, 12, 29, 0.08) 100%),
+    var(--hero-image);
+  background-position: center;
+  background-size: cover;
+  transform: translate3d(0, var(--hero-parallax, 0px), 0) scale(1.08);
+  will-change: transform;
+}
+
+.hero-particles {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.hero-particles span {
+  position: absolute;
+  left: var(--particle-x);
+  top: var(--particle-y);
+  width: var(--particle-size);
+  height: var(--particle-size);
+  border-radius: 50%;
+  background: #ffeab4;
+  opacity: 0.22;
+  box-shadow: 0 0 14px 3px rgba(255, 234, 180, 0.28);
+  animation: heroParticleFloat var(--particle-duration) var(--particle-delay) ease-in-out infinite alternate;
+  will-change: transform, opacity;
+}
+
+.intro h1 {
+  position: relative;
+  display: inline-block;
+  isolation: isolate;
+}
+
+.intro h1 span {
+  display: inline-block;
+  opacity: 0;
+  transform: translate3d(0, 0.18em, 0) scale(0.95);
+  animation: titleLetterIn 640ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  animation-play-state: paused;
+}
+
+body.is-loaded .intro h1 span {
+  animation-play-state: running;
+}
+
+.intro h1 span:nth-child(1) { animation-delay: 320ms; }
+.intro h1 span:nth-child(2) { animation-delay: 370ms; }
+.intro h1 span:nth-child(3) { animation-delay: 420ms; }
+.intro h1 span:nth-child(4) { animation-delay: 470ms; }
+.intro h1 span:nth-child(5) { animation-delay: 520ms; }
+.intro h1 span:nth-child(6) { animation-delay: 570ms; }
+.intro h1 span:nth-child(7) { animation-delay: 620ms; }
+.intro h1 span:nth-child(8) { animation-delay: 670ms; }
+.intro h1 span:nth-child(9) { animation-delay: 720ms; }
+.intro h1 span:nth-child(10) { animation-delay: 770ms; }
+.intro h1 span:nth-child(11) { animation-delay: 820ms; }
+.intro h1 span:nth-child(12) { animation-delay: 870ms; }
+.intro h1 span:nth-child(13) { animation-delay: 920ms; }
+
+.intro h1::after {
+  content: "";
+  position: absolute;
+  inset: 0 -8%;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 40%, rgba(255, 255, 255, 0.58) 50%, transparent 60%);
+  transform: translateX(-120%);
+  animation: titleShimmer 1.8s 1.2s ease-out both;
+}
+
+.event-line span {
+  animation: badgeFloat 3.6s ease-in-out infinite;
+  will-change: transform;
+}
+
+.event-line span:nth-child(2) { animation-delay: -1.2s; }
+.event-line span:nth-child(3) { animation-delay: -2.4s; }
+
+.countdown {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.countdown div:nth-child(4) {
+  background: #d7c7ff;
+}
+
+.countdown.is-urgent {
+  animation: countdownUrgent 2.2s ease-in-out infinite;
+}
+
+.countdown strong.is-flipping {
+  animation: countdownFlip 360ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  transform-origin: center bottom;
+  will-change: transform, opacity;
+}
+
+.primary-cta {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  transition: transform 220ms ease, box-shadow 220ms ease;
+}
+
+.primary-cta::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(110deg, transparent 28%, rgba(255, 255, 255, 0.42) 50%, transparent 72%);
+  transform: translateX(-130%);
+  animation: ctaShimmer 4.6s 1.4s ease-in-out infinite;
+}
+
+.primary-cta:hover {
+  transform: translate3d(0, -2px, 0) scale(1.03);
+  box-shadow: 0 20px 42px rgba(184, 93, 136, 0.34);
+}
+
+.micro-confetti {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 5px;
+  height: 9px;
+  border-radius: 2px;
+  background: var(--confetti-color);
+  pointer-events: none;
+  animation: microConfetti 700ms cubic-bezier(0.16, 0.8, 0.3, 1) both;
+  transform: rotate(var(--confetti-angle));
+  will-change: transform, opacity;
+}
+
+.upload-limit strong.is-counting {
+  animation: limitCount 360ms ease both;
+}
+
+.image-preview:not([hidden]) {
+  animation: previewIn 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+/* The parent owns the complete heart silhouette; the two leaves only split it. */
+.magic-door-frame {
+  overflow: hidden;
+  clip-path: url(#heart-shape);
+}
+
+.magic-door-frame .magic-door-inside,
+.magic-door-frame .magic-door-left,
+.magic-door-frame .magic-door-right {
+  clip-path: none;
+}
+
+.magic-door {
+  border: 0;
+}
+
+.magic-door::before {
+  display: none;
+}
+
+@keyframes heroParticleFloat {
+  from { opacity: 0.12; transform: translate3d(-8px, 8px, 0) scale(0.82); }
+  to { opacity: 0.3; transform: translate3d(10px, -18px, 0) scale(1.16); }
+}
+
+@keyframes titleLetterIn {
+  to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+
+@keyframes titleShimmer {
+  to { transform: translateX(120%); }
+}
+
+@keyframes badgeFloat {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -3px, 0); }
+}
+
+@keyframes countdownFlip {
+  0% { opacity: 0.35; transform: perspective(180px) rotateX(-84deg); }
+  55% { opacity: 1; transform: perspective(180px) rotateX(8deg); }
+  100% { opacity: 1; transform: perspective(180px) rotateX(0); }
+}
+
+@keyframes countdownUrgent {
+  0%, 100% { filter: drop-shadow(0 0 0 rgba(245, 166, 207, 0)); }
+  50% { filter: drop-shadow(0 0 16px rgba(245, 166, 207, 0.34)); }
+}
+
+@keyframes ctaShimmer {
+  0%, 68% { transform: translateX(-130%); }
+  84%, 100% { transform: translateX(130%); }
+}
+
+@keyframes microConfetti {
+  from { opacity: 1; transform: rotate(var(--confetti-angle)) translate3d(0, 0, 0) scale(0.7); }
+  to { opacity: 0; transform: rotate(var(--confetti-angle)) translate3d(0, calc(var(--confetti-distance) * -1), 0) scale(1); }
+}
+
+@keyframes limitCount {
+  0% { opacity: 0.35; transform: translate3d(0, 4px, 0); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+@keyframes previewIn {
+  from { opacity: 0; transform: translate3d(0, 8px, 0) scale(0.98); }
+  to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+
+@media (max-width: 620px) {
+  .countdown { gap: 6px; }
+  .countdown div { min-width: 0; }
+  .countdown div { padding: 10px 5px; }
+  .countdown strong { font-size: 1.25rem; }
+  .countdown span { font-size: 0.62rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-particles span,
+  .event-line span,
+  .intro h1 span,
+  .intro h1::after,
+  .primary-cta::before,
+  .countdown strong.is-flipping,
+  .countdown.is-urgent { animation: none; }
+  .hero-backdrop { transform: scale(1.04); }
+}
+
 /* Brighter romantic color pass */
 body {
   color: #392840;

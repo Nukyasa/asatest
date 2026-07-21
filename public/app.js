@@ -35,9 +35,12 @@ const hideSlideshowMessages = document.querySelector("#hide-slideshow-messages")
 const countdownDays = document.querySelector("#countdown-days");
 const countdownHours = document.querySelector("#countdown-hours");
 const countdownMinutes = document.querySelector("#countdown-minutes");
+const countdownSeconds = document.querySelector("#countdown-seconds");
 const magicEntry = document.querySelector("#magic-entry");
 const magicEnter = document.querySelector("#magic-enter");
 const magicStars = document.querySelector("#magic-stars");
+const heroParticles = document.querySelector("#hero-particles");
+const countdown = document.querySelector(".countdown");
 
 let allPhotos = [];
 let visiblePhotos = [];
@@ -106,6 +109,52 @@ function setupHeroTilt() {
   });
 }
 
+function setupHeroDepth() {
+  if (!heroParticles) return;
+  const count = window.innerWidth < 600 ? 14 : 20;
+  for (let index = 0; index < count; index += 1) {
+    const particle = document.createElement("span");
+    particle.style.setProperty("--particle-x", `${Math.random() * 100}%`);
+    particle.style.setProperty("--particle-y", `${10 + Math.random() * 82}%`);
+    particle.style.setProperty("--particle-size", `${2 + Math.random() * 5}px`);
+    particle.style.setProperty("--particle-delay", `${Math.random() * -8}s`);
+    particle.style.setProperty("--particle-duration", `${7 + Math.random() * 7}s`);
+    heroParticles.appendChild(particle);
+  }
+
+  let ticking = false;
+  const updateParallax = () => {
+    document.documentElement.style.setProperty("--hero-parallax", `${Math.min(window.scrollY * 0.22, 110)}px`);
+    ticking = false;
+  };
+  window.addEventListener("scroll", () => {
+    if (ticking) return;
+    ticking = true;
+    window.requestAnimationFrame(updateParallax);
+  }, { passive: true });
+  updateParallax();
+}
+
+function burstConfetti(target) {
+  if (!target || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const colors = ["#f5a6cf", "#ffeab4", "#b9e8e0", "#d7c7ff", "#fff7df"];
+  for (let index = 0; index < 9; index += 1) {
+    const piece = document.createElement("span");
+    piece.className = "micro-confetti";
+    piece.style.setProperty("--confetti-angle", `${(index / 9) * 360 + Math.random() * 20}deg`);
+    piece.style.setProperty("--confetti-distance", `${24 + Math.random() * 42}px`);
+    piece.style.setProperty("--confetti-color", colors[index % colors.length]);
+    target.appendChild(piece);
+    window.setTimeout(() => piece.remove(), 760);
+  }
+}
+
+function setupTactileActions() {
+  document.querySelectorAll(".primary-cta").forEach((button) => {
+    button.addEventListener("click", () => burstConfetti(button));
+  });
+}
+
 function formatCount(count) {
   if (count === 1) return "1 slika";
   if (count > 1 && count < 5) return `${count} slike`;
@@ -121,6 +170,9 @@ function formatBytes(bytes) {
 function updateUploadLimitCopy() {
   const max = uploadStatus.maxUploadsPerDevice || 50;
   const remaining = Math.max(0, Number(uploadStatus.remaining || 0));
+  const previous = Number(uploadRemaining.dataset.value ?? remaining);
+  uploadRemaining.dataset.value = String(remaining);
+  uploadRemaining.classList.toggle("is-counting", previous !== remaining);
   uploadRemaining.textContent = `Možeš još dodati ${remaining} od ${max} slika`;
   uploadLimitDetail.textContent =
     remaining > 0
@@ -423,16 +475,29 @@ fileInput.addEventListener("change", () => {
 
 previewRemove.addEventListener("click", clearPreview);
 
+function setCountdownValue(element, value) {
+  if (!element) return;
+  const next = String(value);
+  if (element.textContent === next) return;
+  element.textContent = next;
+  element.classList.remove("is-flipping");
+  void element.offsetWidth;
+  element.classList.add("is-flipping");
+}
+
 function updateCountdown() {
   if (!countdownDays || !countdownHours || !countdownMinutes) return;
   const remaining = Math.max(0, WEDDING_DATE.getTime() - Date.now());
-  const totalMinutes = Math.floor(remaining / 60000);
-  const days = Math.floor(totalMinutes / 1440);
-  const hours = Math.floor((totalMinutes % 1440) / 60);
-  const minutes = totalMinutes % 60;
-  countdownDays.textContent = String(days);
-  countdownHours.textContent = String(hours).padStart(2, "0");
-  countdownMinutes.textContent = String(minutes).padStart(2, "0");
+  const totalSeconds = Math.floor(remaining / 1000);
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  setCountdownValue(countdownDays, String(days));
+  setCountdownValue(countdownHours, String(hours).padStart(2, "0"));
+  setCountdownValue(countdownMinutes, String(minutes).padStart(2, "0"));
+  setCountdownValue(countdownSeconds, String(seconds).padStart(2, "0"));
+  countdown?.classList.toggle("is-urgent", remaining > 0 && remaining <= 86400000);
 }
 
 function imageExists(src) {
@@ -528,6 +593,7 @@ form.addEventListener("submit", async (event) => {
     statusEl.textContent = "Slika je dodana u galeriju. Hvala što čuvaš ovaj trenutak s nama.";
     statusEl.classList.add("is-success");
     successCelebration.hidden = false;
+    burstConfetti(form);
     window.setTimeout(() => {
       successCelebration.hidden = true;
     }, 2200);
@@ -572,6 +638,10 @@ startIntroAnimation();
 setupHeroImage();
 setupMagicEntry();
 setupHeroTilt();
+setupHeroDepth();
+setupTactileActions();
+updateCountdown();
+window.setInterval(updateCountdown, 1000);
 loadUploadStatus().catch((error) => {
   uploadRemaining.textContent = "Limit nije dostupan";
   uploadLimitDetail.textContent = error.message;
