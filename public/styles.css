@@ -3948,6 +3948,16 @@ body.magic-entered .app-shell {
   clip-path: url(#heart-right-shape);
 }
 
+/* Keep the heart clean: no separate frame, outline, halo or floor mark around it. */
+.magic-door-frame {
+  box-shadow: none;
+}
+
+.magic-door-frame::before,
+.magic-door-frame::after {
+  display: none;
+}
+
 /* Brighter romantic color pass */
 body {
   color: #392840;
