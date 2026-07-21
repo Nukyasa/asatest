@@ -4213,6 +4213,8 @@ body.is-loaded .intro h1 span {
 
 .intro-copy {
   max-width: 700px;
+  align-self: start;
+  padding-top: 42px;
 }
 
 .countdown {
@@ -4233,6 +4235,7 @@ body.is-loaded .intro h1 span {
 
   .intro-copy {
     max-width: none;
+    padding-top: 0;
   }
 
   .upload-panel {
