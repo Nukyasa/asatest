@@ -4041,7 +4041,7 @@ body::before {
 
 .magic-door-frame {
   border-color: #c99a63;
-  background: #f1d5b8;
+  background: transparent;
   box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.54), 0 0 70px rgba(194, 123, 170, 0.42);
 }
 
@@ -4073,4 +4073,34 @@ body::before {
   color: #5c3558;
   background: linear-gradient(135deg, #fff1c7, #f3b0cf);
   box-shadow: 0 10px 38px rgba(188, 92, 139, 0.2);
+}
+
+/* Soft blurred wedding photo behind the light interface after entering. */
+body::after {
+  content: "";
+  position: fixed;
+  inset: -34px;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(135deg, rgba(255, 249, 251, 0.72), rgba(241, 234, 255, 0.68)),
+    url("https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=2200&q=82");
+  background-position: center;
+  background-size: cover;
+  filter: blur(20px) saturate(0.82);
+  opacity: 0.64;
+  transform: scale(1.06);
+}
+
+.magic-door-frame::after {
+  content: "";
+  position: absolute;
+  left: -12%;
+  right: -12%;
+  bottom: -13px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(139, 88, 122, 0.2);
+  filter: blur(12px);
+  pointer-events: none;
 }
