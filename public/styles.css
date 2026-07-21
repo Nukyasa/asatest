@@ -3202,6 +3202,37 @@ body {
   .upload-panel { max-width: none !important; }
 }
 
+/* Center and contain the classic hero copy so the names never get clipped. */
+.intro-copy {
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+}
+
+.intro h1 {
+  width: 100% !important;
+  max-width: 100% !important;
+  font-size: clamp(3rem, 6.7vw, 6rem) !important;
+  line-height: .94 !important;
+  letter-spacing: -.055em !important;
+  white-space: normal !important;
+  text-align: center !important;
+}
+
+.intro-copy .lead {
+  max-width: 500px !important;
+  text-align: center !important;
+}
+
+.intro .event-line,
+.intro .landing-actions {
+  justify-content: center !important;
+}
+
+.intro .countdown {
+  justify-content: center !important;
+}
+
 .gallery-section {
   position: relative;
   overflow: hidden;
