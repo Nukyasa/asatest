@@ -9,7 +9,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: STORAGE_MODE
-        value: supabase
+        value: drive
       - key: GOOGLE_DRIVE_CLIENT_ID
         sync: false
       - key: GOOGLE_DRIVE_CLIENT_SECRET
