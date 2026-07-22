@@ -252,13 +252,16 @@ function renderPhotos() {
     const isVideo = String(photo.mediaType || photo.mimeType || "").startsWith("video/");
     const mediaType = String(photo.mediaType || photo.mimeType || "").toLowerCase();
     const useDrivePreview = isVideo && Boolean(photo.drivePreviewUrl) && !["video/mp4", "video/webm"].includes(mediaType);
+    const useDriveThumbnail = useDrivePreview && Boolean(photo.driveThumbnailUrl);
     card.classList.toggle("is-video-card", isVideo);
     videoBadge.hidden = !isVideo;
-    image.hidden = isVideo;
+    image.hidden = isVideo && !useDriveThumbnail;
     video.hidden = !isVideo || useDrivePreview;
-    driveVideo.hidden = !useDrivePreview;
+    driveVideo.hidden = !useDrivePreview || useDriveThumbnail;
     if (isVideo) {
-      if (useDrivePreview) {
+      if (useDriveThumbnail) {
+        image.src = photo.driveThumbnailUrl;
+      } else if (useDrivePreview) {
         driveVideo.src = photo.drivePreviewUrl;
       } else {
         video.controls = true;
@@ -276,6 +279,12 @@ function renderPhotos() {
       image.src = mediaUrl;
     }
     image.addEventListener("error", () => {
+      if (useDriveThumbnail && driveVideo && photo.drivePreviewUrl) {
+        image.hidden = true;
+        driveVideo.hidden = false;
+        driveVideo.src = photo.drivePreviewUrl;
+        return;
+      }
       const fallback = photo.originalUrl || photo.url;
       if (image.src !== fallback) image.src = fallback;
     }, { once: true });

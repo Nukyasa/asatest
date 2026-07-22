@@ -226,6 +226,7 @@ function publicPhoto(photo) {
   const previewFileId = result.optimizedObjectPath || driveFileIdFromUrl(result.optimizedUrl || result.url);
   if (previewFileId && String(result.mediaType || result.mimeType || "").startsWith("video/")) {
     result.drivePreviewUrl = `https://drive.google.com/file/d/${encodeURIComponent(previewFileId)}/preview`;
+    result.driveThumbnailUrl = `https://drive.google.com/thumbnail?id=${encodeURIComponent(previewFileId)}&sz=w1200`;
   }
 
   ["url", "optimizedUrl", "originalUrl"].forEach((field) => {
