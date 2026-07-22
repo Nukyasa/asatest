@@ -254,6 +254,7 @@ function renderPhotos() {
     const useDrivePreview = isVideo && Boolean(photo.drivePreviewUrl) && !["video/mp4", "video/webm"].includes(mediaType);
     const useDriveThumbnail = useDrivePreview && Boolean(photo.driveThumbnailUrl);
     card.classList.toggle("is-video-card", isVideo);
+    card.classList.toggle("uses-drive-thumbnail", useDriveThumbnail);
     videoBadge.hidden = !isVideo;
     image.hidden = isVideo && !useDriveThumbnail;
     video.hidden = !isVideo || useDrivePreview;

@@ -2426,6 +2426,22 @@ body.has-custom-hero .upload-panel::after {
   background: #19152c;
 }
 
+/* Drive thumbnails use their real image ratio, exactly like gallery photos. */
+.photo-card.is-video-card.uses-drive-thumbnail .photo-link {
+  aspect-ratio: auto !important;
+  height: auto;
+  overflow: hidden;
+}
+
+.photo-card.is-video-card.uses-drive-thumbnail .photo-link > img {
+  position: static;
+  width: 100%;
+  height: auto;
+  aspect-ratio: auto;
+  object-fit: cover;
+  background: transparent;
+}
+
 .image-preview video {
   width: 160px;
   height: 90px;
