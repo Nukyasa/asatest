@@ -2756,6 +2756,136 @@ body.has-custom-hero .upload-panel::after {
 
 body.admin-video-open { overflow: hidden; }
 
+/* Final light admin pass */
+.admin-page {
+  color: #49354f;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(255, 211, 229, .75), transparent 34%),
+    radial-gradient(circle at 100% 8%, rgba(217, 208, 255, .72), transparent 34%),
+    linear-gradient(135deg, #fffaf8 0%, #f8f2ff 52%, #fff6f1 100%);
+}
+
+.admin-shell {
+  width: min(1180px, calc(100% - 32px));
+  padding: 30px 0 70px;
+}
+
+.admin-hero,
+.admin-card {
+  border: 1px solid rgba(133, 91, 137, .15) !important;
+  background: rgba(255, 255, 255, .9) !important;
+  box-shadow: 0 18px 55px rgba(107, 75, 118, .11), inset 0 1px rgba(255,255,255,.95) !important;
+}
+
+.admin-hero {
+  min-height: 180px;
+  padding: 30px 34px !important;
+}
+
+.admin-hero h1,
+.admin-section-heading h2,
+.admin-card h2 {
+  color: #4b3153 !important;
+}
+
+.admin-hero-copy,
+.admin-card p,
+.status-grid p span,
+.admin-photo-row p {
+  color: #76627d !important;
+}
+
+.admin-actions a,
+.admin-actions button {
+  color: #5b3d64 !important;
+  background: #fff !important;
+  border-color: rgba(132, 85, 132, .2) !important;
+}
+
+.admin-grid .admin-card {
+  background: linear-gradient(145deg, #fff, #fff8fc) !important;
+}
+
+.admin-grid .admin-card strong {
+  color: #b54f80 !important;
+}
+
+.live-status-card,
+.admin-qr-card {
+  padding: 26px 30px !important;
+}
+
+.status-grid p {
+  border-color: rgba(133, 91, 137, .13) !important;
+  background: #fffafd !important;
+}
+
+.status-grid p strong {
+  color: #4d765f !important;
+}
+
+.admin-qr-card {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) 230px;
+  align-items: center;
+  gap: 34px;
+}
+
+.admin-qr-copy {
+  max-width: 650px !important;
+}
+
+.admin-qr-copy h2 {
+  margin-bottom: 10px !important;
+  font-size: clamp(1.8rem, 3vw, 2.7rem) !important;
+}
+
+.admin-qr-copy p:not(.kicker) {
+  color: #76627d !important;
+  line-height: 1.65 !important;
+}
+
+.admin-qr-wrap {
+  justify-self: center;
+  width: 214px !important;
+  height: 214px !important;
+  padding: 12px !important;
+  border: 1px solid rgba(133, 91, 137, .18) !important;
+  border-radius: 22px !important;
+  background: #fff !important;
+  box-shadow: 0 14px 32px rgba(107, 75, 118, .14) !important;
+}
+
+.admin-qr-wrap img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+}
+
+.admin-media-heading {
+  margin-bottom: 20px;
+}
+
+.admin-search input {
+  color: #4b3153 !important;
+  background: #fff !important;
+}
+
+.admin-photo-row {
+  border-color: rgba(133, 91, 137, .14) !important;
+  background: #fff !important;
+  box-shadow: 0 8px 24px rgba(107, 75, 118, .06);
+}
+
+@media (max-width: 720px) {
+  .admin-shell { width: min(100% - 20px, 1180px); padding-top: 14px; }
+  .admin-hero { padding: 22px 18px !important; }
+  .admin-qr-card { grid-template-columns: 1fr; gap: 22px; text-align: center; }
+  .admin-qr-copy { justify-self: center; }
+  .admin-qr-wrap { grid-row: 2; }
+  .admin-qr-copy .secondary-button { width: min(100%, 320px); }
+}
+
 @media (max-width: 720px) {
   .admin-shell { width: min(100% - 20px, 1160px); padding-top: 16px; }
   .admin-hero { padding: 22px 18px; }
