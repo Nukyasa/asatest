@@ -267,6 +267,7 @@ function renderPhotos() {
         driveVideo.src = photo.drivePreviewUrl;
       } else {
         video.controls = true;
+        video.poster = photo.driveThumbnailUrl || "";
         video.src = mediaUrl;
         video.addEventListener("click", (event) => event.stopPropagation());
         video.addEventListener("error", () => {
@@ -486,6 +487,7 @@ function openLightbox(index) {
     lightboxVideo.load();
   } else if (isVideo) {
     lightboxDriveVideo.removeAttribute("src");
+    lightboxVideo.poster = photo.driveThumbnailUrl || "";
     lightboxVideo.src = mediaUrl;
     lightboxVideo.load();
     lightboxVideo.currentTime = 0;
