@@ -226,7 +226,7 @@ function publicPhoto(photo) {
   const previewFileId = result.optimizedObjectPath || driveFileIdFromUrl(result.optimizedUrl || result.url);
   if (previewFileId && String(result.mediaType || result.mimeType || "").startsWith("video/")) {
     result.drivePreviewUrl = `https://drive.google.com/file/d/${encodeURIComponent(previewFileId)}/preview`;
-    result.driveThumbnailUrl = `https://drive.google.com/thumbnail?id=${encodeURIComponent(previewFileId)}&sz=w1200`;
+    result.driveThumbnailUrl = `/api/media-thumbnail/${encodeURIComponent(previewFileId)}`;
   }
 
   ["url", "optimizedUrl", "originalUrl"].forEach((field) => {
@@ -1495,6 +1495,26 @@ async function handleRequest(req, res) {
     res.writeHead(response.status, headers);
     if (response.body) Readable.fromWeb(response.body).pipe(res);
     else res.end();
+    return;
+  }
+
+  const thumbnailMatch = url.pathname.match(/^\/api\/media-thumbnail\/([a-zA-Z0-9_-]+)$/);
+  if (req.method === "GET" && thumbnailMatch) {
+    const fileId = thumbnailMatch[1];
+    const response = await fetch(
+      `https://drive.google.com/thumbnail?id=${encodeURIComponent(fileId)}&sz=w1200`
+    );
+    if (!response.ok || !response.body) {
+      sendError(res, 404, "Thumbnail videa nije pronadjen.");
+      return;
+    }
+    const contentType = response.headers.get("content-type") || "image/jpeg";
+    res.writeHead(200, {
+      "Content-Type": contentType,
+      "Cache-Control": "public, max-age=86400",
+      "X-Content-Type-Options": "nosniff"
+    });
+    Readable.fromWeb(response.body).pipe(res);
     return;
   }
 
