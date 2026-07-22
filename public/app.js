@@ -241,6 +241,7 @@ function renderPhotos() {
     const image = node.querySelector("img");
     const video = node.querySelector("video");
     const driveVideo = node.querySelector(".drive-video-preview");
+    const videoBadge = node.querySelector(".video-preview-badge");
     const caption = node.querySelector(".caption");
     const message = node.querySelector(".message");
     const guest = node.querySelector(".guest");
@@ -251,6 +252,8 @@ function renderPhotos() {
     const isVideo = String(photo.mediaType || photo.mimeType || "").startsWith("video/");
     const mediaType = String(photo.mediaType || photo.mimeType || "").toLowerCase();
     const useDrivePreview = isVideo && Boolean(photo.drivePreviewUrl) && !["video/mp4", "video/webm"].includes(mediaType);
+    card.classList.toggle("is-video-card", isVideo);
+    videoBadge.hidden = !isVideo;
     image.hidden = isVideo;
     video.hidden = !isVideo || useDrivePreview;
     driveVideo.hidden = !useDrivePreview;
