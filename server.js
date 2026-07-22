@@ -2,7 +2,10 @@ const http = require("http");
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+const os = require("os");
+const { spawn } = require("child_process");
 const { Readable } = require("stream");
+const ffmpegPath = require("ffmpeg-static");
 
 function loadEnvFile(filePath) {
   if (!fs.existsSync(filePath)) return;
@@ -377,6 +380,52 @@ function collectRequestBody(req) {
 
     req.on("end", () => resolve(Buffer.concat(chunks)));
     req.on("error", reject);
+  });
+}
+
+function transcodeVideoToMobileMp4(content, originalName) {
+  if (!ffmpegPath) throw new Error("FFmpeg nije dostupan na serveru.");
+  const token = `${Date.now()}-${crypto.randomBytes(8).toString("hex")}`;
+  const inputPath = path.join(os.tmpdir(), `wedding-${token}${path.extname(originalName || ".mov") || ".mov"}`);
+  const outputPath = path.join(os.tmpdir(), `wedding-${token}.mp4`);
+  fs.writeFileSync(inputPath, content);
+
+  return new Promise((resolve, reject) => {
+    const args = [
+      "-y", "-hide_banner", "-loglevel", "error",
+      "-i", inputPath,
+      "-map", "0:v:0",
+      "-map", "0:a?",
+      "-c:v", "libx264",
+      "-preset", "veryfast",
+      "-crf", "23",
+      "-pix_fmt", "yuv420p",
+      "-c:a", "aac",
+      "-b:a", "128k",
+      "-movflags", "+faststart",
+      outputPath
+    ];
+    const process = spawn(ffmpegPath, args, { windowsHide: true });
+    let errorOutput = "";
+    process.stderr.on("data", (chunk) => { errorOutput += chunk.toString(); });
+    process.on("error", (error) => {
+      fs.rmSync(inputPath, { force: true });
+      reject(error);
+    });
+    process.on("close", (code) => {
+      try {
+        if (code !== 0 || !fs.existsSync(outputPath)) {
+          throw new Error(errorOutput.trim() || `FFmpeg je završio sa kodom ${code}.`);
+        }
+        const converted = fs.readFileSync(outputPath);
+        resolve({ content: converted, contentType: "video/mp4", filename: `${path.basename(originalName || "svadba").replace(/\.[^.]+$/, "")}.mp4` });
+      } catch (error) {
+        reject(error);
+      } finally {
+        fs.rmSync(inputPath, { force: true });
+        fs.rmSync(outputPath, { force: true });
+      }
+    });
   });
 }
 
@@ -904,6 +953,47 @@ async function readAssetContent(fileUrl) {
   return null;
 }
 
+async function readGoogleDriveAssetContent(fileId) {
+  const response = await fetch(
+    `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?alt=media`,
+    { headers: { authorization: `Bearer ${await googleDriveAccessToken()}` } }
+  );
+  if (!response.ok) throw new Error(`Google Drive nije vratio video: ${response.status}`);
+  return Buffer.from(await response.arrayBuffer());
+}
+
+async function reprocessVideoPhoto(photo) {
+  const oldFileId = photo.optimizedObjectPath || driveFileIdFromUrl(photo.url);
+  if (!oldFileId) throw new Error("Drive ID videa nije pronađen.");
+  const source = await readGoogleDriveAssetContent(oldFileId);
+  const converted = await transcodeVideoToMobileMp4(source, photo.originalName || "svadba.mov");
+  const replacement = await saveUploadAsset({
+    id: photo.id,
+    kind: "optimized",
+    content: converted.content,
+    contentType: converted.contentType,
+    originalName: converted.filename
+  });
+  const updated = {
+    ...photo,
+    url: replacement.url,
+    optimizedUrl: replacement.url,
+    optimizedFilename: replacement.filename,
+    optimizedObjectPath: replacement.objectPath,
+    optimizedHash: crypto.createHash("sha256").update(converted.content).digest("hex"),
+    mediaType: "video/mp4",
+    storage: replacement.storage
+  };
+  if (!photo.originalObjectPath || photo.originalObjectPath === oldFileId) {
+    updated.originalUrl = replacement.url;
+    updated.originalFilename = replacement.filename;
+    updated.originalObjectPath = replacement.objectPath;
+  }
+  await replacePhoto(updated);
+  if (oldFileId && oldFileId !== replacement.objectPath) await deleteGoogleDriveAsset(oldFileId);
+  return updated;
+}
+
 const CRC_TABLE = Array.from({ length: 256 }, (_, index) => {
   let value = index;
   for (let bit = 0; bit < 8; bit += 1) {
@@ -1202,7 +1292,7 @@ async function handleUpload(req, res) {
     return;
   }
 
-  const optimizedType = (photoPart.headers["content-type"] || "").toLowerCase();
+  let optimizedType = (photoPart.headers["content-type"] || "").toLowerCase();
   const originalType = ((originalPart || photoPart).headers["content-type"] || "").toLowerCase();
   if (!ALLOWED_MEDIA_TYPES.has(optimizedType) || !ALLOWED_MEDIA_TYPES.has(originalType)) {
     sendError(res, 415, "Dozvoljene su JPG, PNG, WEBP, GIF, MP4, WEBM i MOV datoteke.");
@@ -1212,10 +1302,21 @@ async function handleUpload(req, res) {
   const id = crypto.randomUUID();
   const originalName =
     getDispositionValue((originalPart || photoPart).headers["content-disposition"], "filename") || "svadba";
+  let optimizedContent = photoPart.content;
+  if (optimizedType.startsWith("video/")) {
+    try {
+      const converted = await transcodeVideoToMobileMp4(photoPart.content, originalName);
+      optimizedContent = converted.content;
+      optimizedType = converted.contentType;
+    } catch (error) {
+      sendError(res, 422, `Video nije moguće pripremiti za mobilni prikaz: ${error.message}`);
+      return;
+    }
+  }
   const clientHash = getTextPart(parts, "originalHash", 128);
   const originalHash =
     clientHash || crypto.createHash("sha256").update((originalPart || photoPart).content).digest("hex");
-  const optimizedHash = crypto.createHash("sha256").update(photoPart.content).digest("hex");
+  const optimizedHash = crypto.createHash("sha256").update(optimizedContent).digest("hex");
   const duplicate = await findDuplicatePhoto(originalHash);
   if (duplicate) {
     sendJson(res, 409, {
@@ -1243,7 +1344,7 @@ async function handleUpload(req, res) {
     optimizedAsset = await saveUploadAsset({
       id,
       kind: "optimized",
-      content: photoPart.content,
+      content: optimizedContent,
       contentType: optimizedType,
       originalName
     });
@@ -1436,6 +1537,27 @@ async function handleRequest(req, res) {
   }
 
   const deleteMatch = url.pathname.match(/^\/api\/photos\/([^/]+)$/);
+  const reprocessMatch = url.pathname.match(/^\/api\/photos\/([^/]+)\/reprocess-video$/);
+  if (req.method === "POST" && reprocessMatch) {
+    if (!isAdminAuthenticated(req)) {
+      sendUnauthorized(res);
+      return;
+    }
+    const photos = await readPhotos();
+    const photo = photos.find((entry) => entry.id === decodeURIComponent(reprocessMatch[1]));
+    if (!photo) {
+      sendError(res, 404, "Video nije pronađen.");
+      return;
+    }
+    try {
+      const updated = await reprocessVideoPhoto(photo);
+      sendJson(res, 200, publicPhoto(updated));
+    } catch (error) {
+      sendError(res, 422, `Video nije moguće pripremiti: ${error.message}`);
+    }
+    return;
+  }
+
   if (req.method === "DELETE" && deleteMatch) {
     if (!isAdminAuthenticated(req)) {
       sendUnauthorized(res);

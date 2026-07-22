@@ -2660,6 +2660,26 @@ body.has-custom-hero .upload-panel::after {
   background: #b34f7d;
 }
 
+.admin-row-actions {
+  display: grid;
+  gap: 8px;
+  justify-items: stretch;
+}
+
+.admin-reprocess-button {
+  border: 1px solid rgba(83, 131, 122, .25);
+  border-radius: 999px;
+  padding: 10px 15px;
+  color: #356e66;
+  background: #eaf8f4;
+  white-space: nowrap;
+}
+
+.admin-reprocess-button:hover {
+  color: #fff;
+  background: #4f9488;
+}
+
 .admin-empty-copy {
   padding: 32px;
   border: 1px dashed rgba(139, 94, 135, .24);
@@ -2744,7 +2764,8 @@ body.admin-video-open { overflow: hidden; }
   .admin-section-heading { align-items: stretch; }
   .admin-search { min-width: 0; }
   .admin-photo-row { grid-template-columns: 112px minmax(0, 1fr); gap: 12px; }
-  .admin-photo-row .delete-button { grid-column: 1 / -1; width: 100%; }
+  .admin-row-actions { grid-column: 1 / -1; width: 100%; }
+  .admin-photo-row .delete-button { width: 100%; }
   .admin-media-frame { aspect-ratio: 1 / 1; }
 }
 

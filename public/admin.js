@@ -148,7 +148,30 @@ function rowTemplate(photo) {
     if (response.ok) loadAdmin();
   });
 
-  row.append(media, content, deleteButton);
+  const actions = document.createElement("div");
+  actions.className = "admin-row-actions";
+  if (isVideo) {
+    const reprocessButton = document.createElement("button");
+    reprocessButton.className = "admin-reprocess-button";
+    reprocessButton.type = "button";
+    reprocessButton.textContent = "Pripremi MP4";
+    reprocessButton.addEventListener("click", async () => {
+      reprocessButton.disabled = true;
+      reprocessButton.textContent = "Obrada...";
+      try {
+        const response = await fetch(`/api/photos/${encodeURIComponent(photo.id)}/reprocess-video`, { method: "POST" });
+        if (!response.ok) throw new Error("Video nije obrađen.");
+        await loadAdmin();
+      } catch (error) {
+        reprocessButton.disabled = false;
+        reprocessButton.textContent = "Pokušaj ponovo";
+        window.alert(error.message);
+      }
+    });
+    actions.appendChild(reprocessButton);
+  }
+  actions.appendChild(deleteButton);
+  row.append(media, content, actions);
   return row;
 }
 
