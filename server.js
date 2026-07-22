@@ -223,6 +223,11 @@ function publicPhoto(photo) {
   const result = { ...photo };
   if (result.storage !== "drive") return result;
 
+  const previewFileId = result.optimizedObjectPath || driveFileIdFromUrl(result.optimizedUrl || result.url);
+  if (previewFileId && String(result.mediaType || result.mimeType || "").startsWith("video/")) {
+    result.drivePreviewUrl = `https://drive.google.com/file/d/${encodeURIComponent(previewFileId)}/preview`;
+  }
+
   ["url", "optimizedUrl", "originalUrl"].forEach((field) => {
     const fileId = driveFileIdFromUrl(result[field]);
     if (fileId) result[field] = `/api/media/${encodeURIComponent(fileId)}`;
@@ -1469,7 +1474,7 @@ async function handleRequest(req, res) {
       sendError(res, 404, "Medijski fajl nije pronadjen.");
       return;
     }
-    const contentType = response.headers.get("content-type") || "";
+    const contentType = (response.headers.get("content-type") || "").split(";", 1)[0].trim().toLowerCase();
     if (!contentType.startsWith("image/") && !contentType.startsWith("video/")) {
       sendError(res, 502, "Google Drive nije vratio podrzan medijski fajl.");
       return;
@@ -1477,7 +1482,10 @@ async function handleRequest(req, res) {
     const headers = {
       "Content-Type": contentType,
       "Cache-Control": "public, max-age=31536000, immutable",
-      "Accept-Ranges": "bytes"
+      "Accept-Ranges": "bytes",
+      "Content-Disposition": "inline",
+      "X-Content-Type-Options": "nosniff",
+      "Vary": "Range"
     };
     for (const name of ["content-length", "content-range", "etag", "last-modified"]) {
       const value = response.headers.get(name);

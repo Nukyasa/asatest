@@ -27,6 +27,7 @@ const slideshowPanel = document.querySelector(".slideshow-panel");
 const lightbox = document.querySelector("#lightbox");
 const lightboxImage = document.querySelector("#lightbox-image");
 const lightboxVideo = document.querySelector("#lightbox-video");
+const lightboxDriveVideo = document.querySelector("#lightbox-drive-video");
 const lightboxCaption = document.querySelector("#lightbox-caption");
 const lightboxMeta = document.querySelector("#lightbox-meta");
 const lightboxMessage = document.querySelector("#lightbox-message");
@@ -239,6 +240,7 @@ function renderPhotos() {
     const openButton = node.querySelector(".photo-link");
     const image = node.querySelector("img");
     const video = node.querySelector("video");
+    const driveVideo = node.querySelector(".drive-video-preview");
     const caption = node.querySelector(".caption");
     const message = node.querySelector(".message");
     const guest = node.querySelector(".guest");
@@ -247,18 +249,29 @@ function renderPhotos() {
 
     const mediaUrl = photo.optimizedUrl || photo.url;
     const isVideo = String(photo.mediaType || photo.mimeType || "").startsWith("video/");
+    const mediaType = String(photo.mediaType || photo.mimeType || "").toLowerCase();
+    const useDrivePreview = isVideo && Boolean(photo.drivePreviewUrl) && !["video/mp4", "video/webm"].includes(mediaType);
     image.hidden = isVideo;
-    video.hidden = !isVideo;
+    video.hidden = !isVideo || useDrivePreview;
+    driveVideo.hidden = !useDrivePreview;
     if (isVideo) {
-      video.controls = true;
-      video.src = mediaUrl;
-      video.addEventListener("click", (event) => event.stopPropagation());
-      video.addEventListener("error", () => {
-        const fallback = photo.originalUrl || photo.url;
-        if (fallback && video.src !== fallback) video.src = fallback;
-      }, { once: true });
+      if (useDrivePreview) {
+        driveVideo.src = photo.drivePreviewUrl;
+      } else {
+        video.controls = true;
+        video.src = mediaUrl;
+        video.addEventListener("click", (event) => event.stopPropagation());
+        video.addEventListener("error", () => {
+          const fallback = photo.originalUrl || photo.url;
+          if (fallback && video.src !== fallback) video.src = fallback;
+        }, { once: true });
+      }
     }
-    else image.src = mediaUrl;
+    else {
+      driveVideo.hidden = true;
+      driveVideo.removeAttribute("src");
+      image.src = mediaUrl;
+    }
     image.addEventListener("error", () => {
       const fallback = photo.originalUrl || photo.url;
       if (image.src !== fallback) image.src = fallback;
@@ -272,7 +285,15 @@ function renderPhotos() {
     likeCount.textContent = photo.likes || 0;
     card.dataset.photoId = photo.id;
 
-    openButton.addEventListener("click", () => openLightbox(index));
+    openButton.addEventListener("click", (event) => {
+      if (event.target.closest("video, iframe")) return;
+      openLightbox(index);
+    });
+    openButton.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      openLightbox(index);
+    });
     likeButton.addEventListener("click", () => likePhoto(photo.id));
     gallery.appendChild(node);
   });
@@ -435,13 +456,23 @@ function openLightbox(index) {
   const photo = visiblePhotos[activeIndex];
   const mediaUrl = photo.optimizedUrl || photo.url;
   const isVideo = String(photo.mediaType || photo.mimeType || "").startsWith("video/");
+  const mediaType = String(photo.mediaType || photo.mimeType || "").toLowerCase();
+  const useDrivePreview = isVideo && Boolean(photo.drivePreviewUrl) && !["video/mp4", "video/webm"].includes(mediaType);
   lightboxImage.hidden = isVideo;
-  lightboxVideo.hidden = !isVideo;
-  if (isVideo) {
+  lightboxVideo.hidden = !isVideo || useDrivePreview;
+  lightboxDriveVideo.hidden = !useDrivePreview;
+  if (useDrivePreview) {
+    lightboxDriveVideo.src = photo.drivePreviewUrl;
+    lightboxVideo.removeAttribute("src");
+    lightboxVideo.load();
+  } else if (isVideo) {
+    lightboxDriveVideo.removeAttribute("src");
     lightboxVideo.src = mediaUrl;
     lightboxVideo.load();
     lightboxVideo.currentTime = 0;
   } else {
+    lightboxDriveVideo.hidden = true;
+    lightboxDriveVideo.removeAttribute("src");
     lightboxVideo.removeAttribute("src");
     lightboxVideo.load();
     lightboxImage.src = mediaUrl;
