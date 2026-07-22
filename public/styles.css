@@ -3446,6 +3446,12 @@ h1 {
   background: #19152c;
 }
 
+/* Author styles must never override the native hidden attribute. */
+.photo-link > [hidden],
+.lightbox figure > [hidden] {
+  display: none !important;
+}
+
 .photo-card.is-video-card .photo-link {
   aspect-ratio: 16 / 9;
   overflow: hidden;
