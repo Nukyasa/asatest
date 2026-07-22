@@ -18,6 +18,8 @@ const downloadQr = document.querySelector("#download-qr");
 const refreshButton = document.querySelector("#refresh-admin");
 const runBackupButton = document.querySelector("#run-backup");
 const logoutButton = document.querySelector("#admin-logout");
+const searchInput = document.querySelector("#admin-search");
+let adminPhotos = [];
 
 function buildQrWithLogo(sourceUrl) {
   return new Promise((resolve) => {
@@ -62,19 +64,32 @@ function rowTemplate(photo) {
   row.className = "admin-photo-row";
 
   const isVideo = String(photo.mediaType || photo.mimeType || "").startsWith("video/");
-  const image = document.createElement(isVideo ? "video" : "img");
-  image.src = photo.url;
-  image.alt = isVideo ? "Svadbeni video" : "";
-  if (isVideo) {
-    image.controls = true;
-    image.muted = true;
-    image.playsInline = true;
-    image.preload = "metadata";
-  }
+  const media = document.createElement("div");
+  media.className = `admin-media-frame${isVideo ? " is-video" : ""}`;
+  const image = document.createElement("img");
+  image.src = isVideo ? (photo.driveThumbnailUrl || photo.optimizedUrl || photo.url) : (photo.optimizedUrl || photo.url);
+  image.alt = isVideo ? "Prvi kadar svadbenog videa" : "Svadbena uspomena";
+  image.loading = "lazy";
   image.addEventListener("error", () => {
     const fallback = photo.optimizedUrl || photo.originalUrl;
     if (fallback && image.src !== fallback) image.src = fallback;
   }, { once: true });
+  media.appendChild(image);
+
+  if (isVideo) {
+    const videoLabel = document.createElement("span");
+    videoLabel.className = "admin-video-label";
+    videoLabel.textContent = "VIDEO";
+    media.appendChild(videoLabel);
+    const openVideo = document.createElement("a");
+    openVideo.className = "admin-play-button";
+    openVideo.href = photo.drivePreviewUrl || photo.url;
+    openVideo.target = "_blank";
+    openVideo.rel = "noopener";
+    openVideo.setAttribute("aria-label", "Otvori video");
+    openVideo.innerHTML = "<span aria-hidden=\"true\">▶</span>";
+    media.appendChild(openVideo);
+  }
 
   const content = document.createElement("div");
   const title = document.createElement("h3");
@@ -90,14 +105,30 @@ function rowTemplate(photo) {
   deleteButton.type = "button";
   deleteButton.textContent = "Obrisi";
   deleteButton.addEventListener("click", async () => {
+    if (!window.confirm("Obrisati ovu uspomenu?")) return;
     const response = await fetch(`/api/photos/${encodeURIComponent(photo.id)}`, {
       method: "DELETE"
     });
     if (response.ok) loadAdmin();
   });
 
-  row.append(image, content, deleteButton);
+  row.append(media, content, deleteButton);
   return row;
+}
+
+function renderAdminList() {
+  const query = searchInput.value.trim().toLowerCase();
+  adminList.replaceChildren();
+  const filtered = adminPhotos.filter((photo) => [photo.caption, photo.message, photo.guest, photo.originalName]
+    .filter(Boolean).join(" ").toLowerCase().includes(query));
+  if (!filtered.length) {
+    const empty = document.createElement("p");
+    empty.className = "admin-empty-copy";
+    empty.textContent = query ? "Nema rezultata za ovu pretragu." : "Još nema uploadovanih uspomena.";
+    adminList.appendChild(empty);
+    return;
+  }
+  filtered.forEach((photo) => adminList.appendChild(rowTemplate(photo)));
 }
 
 function formatBackupDate(value) {
@@ -149,14 +180,8 @@ async function loadAdmin() {
   downloadQr.href = qrWithLogo;
   downloadQr.download = "nurdin-adna-qr-kod.png";
 
-  adminList.replaceChildren();
-  if (!photos.length) {
-    const empty = document.createElement("p");
-    empty.textContent = "Jos nema uploadovanih slika.";
-    adminList.appendChild(empty);
-    return;
-  }
-  photos.forEach((photo) => adminList.appendChild(rowTemplate(photo)));
+  adminPhotos = photos;
+  renderAdminList();
 }
 
 refreshButton.addEventListener("click", loadAdmin);
@@ -175,4 +200,5 @@ runBackupButton.addEventListener("click", async () => {
     loadAdmin();
   }
 });
+searchInput.addEventListener("input", renderAdminList);
 loadAdmin();

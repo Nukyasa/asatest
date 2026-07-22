@@ -12,6 +12,7 @@
         <div>
           <p class="kicker">Admin galerija</p>
           <h1>Nurdin & Adna</h1>
+          <p class="admin-hero-copy">Upravljaj uspomenama, pregledaj videe i pripremi galeriju za goste.</p>
         </div>
         <div class="admin-actions">
           <a href="/">Nazad na galeriju</a>
@@ -88,7 +89,16 @@
       </section>
 
       <section class="admin-card">
-        <p class="kicker">Upravljanje slikama</p>
+        <div class="admin-section-heading admin-media-heading">
+          <div>
+            <p class="kicker">Upravljanje uspomenama</p>
+            <h2>Fotografije i videi</h2>
+          </div>
+          <label class="admin-search">
+            <span>Pretraži</span>
+            <input id="admin-search" type="search" placeholder="Ime, poruka ili gost..." />
+          </label>
+        </div>
         <div class="admin-list" id="admin-list"></div>
       </section>
     </main>
