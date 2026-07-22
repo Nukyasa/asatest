@@ -386,7 +386,7 @@ function collectRequestBody(req) {
 function transcodeVideoToMobileMp4(content, originalName) {
   if (!ffmpegPath) throw new Error("FFmpeg nije dostupan na serveru.");
   const token = `${Date.now()}-${crypto.randomBytes(8).toString("hex")}`;
-  const inputPath = path.join(os.tmpdir(), `wedding-${token}${path.extname(originalName || ".mov") || ".mov"}`);
+  const inputPath = path.join(os.tmpdir(), `wedding-${token}.source`);
   const outputPath = path.join(os.tmpdir(), `wedding-${token}.mp4`);
   fs.writeFileSync(inputPath, content);
 
