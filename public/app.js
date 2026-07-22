@@ -251,8 +251,7 @@ function renderPhotos() {
 
     const mediaUrl = photo.optimizedUrl || photo.url;
     const isVideo = String(photo.mediaType || photo.mimeType || "").startsWith("video/");
-    const mediaType = String(photo.mediaType || photo.mimeType || "").toLowerCase();
-    const useDrivePreview = isVideo && Boolean(photo.drivePreviewUrl) && !["video/mp4", "video/webm"].includes(mediaType);
+    const useDrivePreview = isVideo && Boolean(photo.drivePreviewUrl);
     const useDriveThumbnail = useDrivePreview && Boolean(photo.driveThumbnailUrl);
     card.classList.toggle("is-video-card", isVideo);
     card.classList.toggle("uses-drive-thumbnail", useDriveThumbnail);
@@ -474,8 +473,7 @@ function openLightbox(index) {
   const photo = visiblePhotos[activeIndex];
   const mediaUrl = photo.optimizedUrl || photo.url;
   const isVideo = String(photo.mediaType || photo.mimeType || "").startsWith("video/");
-  const mediaType = String(photo.mediaType || photo.mimeType || "").toLowerCase();
-  const useDrivePreview = isVideo && Boolean(photo.drivePreviewUrl) && !["video/mp4", "video/webm"].includes(mediaType);
+  const useDrivePreview = isVideo && Boolean(photo.drivePreviewUrl);
   lightboxImage.hidden = isVideo;
   lightboxVideo.hidden = !isVideo || useDrivePreview;
   lightboxDriveVideo.hidden = true;
