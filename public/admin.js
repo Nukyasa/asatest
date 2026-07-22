@@ -19,7 +19,37 @@ const refreshButton = document.querySelector("#refresh-admin");
 const runBackupButton = document.querySelector("#run-backup");
 const logoutButton = document.querySelector("#admin-logout");
 const searchInput = document.querySelector("#admin-search");
+const videoLightbox = document.querySelector("#admin-video-lightbox");
+const videoViewer = document.querySelector("#admin-video-viewer");
+const videoClose = document.querySelector("#admin-video-close");
 let adminPhotos = [];
+
+function closeAdminVideo() {
+  videoLightbox.hidden = true;
+  videoViewer.replaceChildren();
+  document.body.classList.remove("admin-video-open");
+}
+
+function openAdminVideo(photo) {
+  videoViewer.replaceChildren();
+  if (photo.drivePreviewUrl) {
+    const frame = document.createElement("iframe");
+    frame.src = photo.drivePreviewUrl;
+    frame.title = "Pregled svadbenog videa";
+    frame.allow = "autoplay; fullscreen";
+    frame.allowFullscreen = true;
+    videoViewer.appendChild(frame);
+  } else {
+    const video = document.createElement("video");
+    video.src = photo.optimizedUrl || photo.url;
+    video.controls = true;
+    video.autoplay = true;
+    video.playsInline = true;
+    videoViewer.appendChild(video);
+  }
+  videoLightbox.hidden = false;
+  document.body.classList.add("admin-video-open");
+}
 
 function buildQrWithLogo(sourceUrl) {
   return new Promise((resolve) => {
@@ -81,13 +111,12 @@ function rowTemplate(photo) {
     videoLabel.className = "admin-video-label";
     videoLabel.textContent = "VIDEO";
     media.appendChild(videoLabel);
-    const openVideo = document.createElement("a");
+    const openVideo = document.createElement("button");
     openVideo.className = "admin-play-button";
-    openVideo.href = photo.drivePreviewUrl || photo.url;
-    openVideo.target = "_blank";
-    openVideo.rel = "noopener";
+    openVideo.type = "button";
     openVideo.setAttribute("aria-label", "Otvori video");
     openVideo.innerHTML = "<span aria-hidden=\"true\">▶</span>";
+    openVideo.addEventListener("click", () => openAdminVideo(photo));
     media.appendChild(openVideo);
   }
 
@@ -201,4 +230,11 @@ runBackupButton.addEventListener("click", async () => {
   }
 });
 searchInput.addEventListener("input", renderAdminList);
+videoClose.addEventListener("click", closeAdminVideo);
+videoLightbox.addEventListener("click", (event) => {
+  if (event.target === videoLightbox) closeAdminVideo();
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !videoLightbox.hidden) closeAdminVideo();
+});
 loadAdmin();

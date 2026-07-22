@@ -2668,6 +2668,56 @@ body.has-custom-hero .upload-panel::after {
   text-align: center;
 }
 
+.admin-video-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(28, 16, 35, .82);
+  backdrop-filter: blur(14px);
+}
+
+.admin-video-lightbox[hidden] { display: none; }
+
+.admin-video-viewer {
+  width: min(980px, 100%);
+  height: min(720px, 82vh);
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.32);
+  border-radius: 24px;
+  background: #130e1b;
+  box-shadow: 0 28px 90px rgba(0,0,0,.42);
+}
+
+.admin-video-viewer iframe,
+.admin-video-viewer video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  object-fit: contain;
+  background: #130e1b;
+}
+
+.admin-video-close {
+  position: fixed;
+  top: 22px;
+  right: 24px;
+  z-index: 101;
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgba(255,255,255,.35);
+  border-radius: 50%;
+  color: #fff;
+  background: rgba(40, 23, 47, .8);
+  font-size: 1.6rem;
+  cursor: pointer;
+}
+
+body.admin-video-open { overflow: hidden; }
+
 @media (max-width: 720px) {
   .admin-shell { width: min(100% - 20px, 1160px); padding-top: 16px; }
   .admin-hero { padding: 22px 18px; }
