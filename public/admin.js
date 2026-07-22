@@ -41,7 +41,7 @@ function openAdminVideo(photo) {
     videoViewer.appendChild(frame);
     const fallback = document.createElement("a");
     fallback.className = "admin-video-fallback";
-    fallback.href = photo.drivePreviewUrl;
+    fallback.href = photo.driveViewUrl || photo.drivePreviewUrl;
     fallback.target = "_blank";
     fallback.rel = "noopener";
     fallback.textContent = "Ako se video ne pokrene, otvori ga ovdje";

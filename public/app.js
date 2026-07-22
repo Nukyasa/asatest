@@ -253,6 +253,7 @@ function renderPhotos() {
     const isVideo = String(photo.mediaType || photo.mimeType || "").startsWith("video/");
     const driveFileId = photo.storage === "drive" ? (photo.optimizedObjectPath || "") : "";
     const drivePreviewUrl = photo.drivePreviewUrl || (driveFileId ? `https://drive.google.com/file/d/${encodeURIComponent(driveFileId)}/preview` : "");
+    const driveViewUrl = photo.driveViewUrl || (driveFileId ? `https://drive.google.com/file/d/${encodeURIComponent(driveFileId)}/view?usp=sharing` : "");
     const driveThumbnailUrl = photo.driveThumbnailUrl || (driveFileId ? `/api/media-thumbnail/${encodeURIComponent(driveFileId)}` : "");
     const useDrivePreview = isVideo && Boolean(drivePreviewUrl);
     const useDriveThumbnail = isVideo && Boolean(driveThumbnailUrl);
@@ -304,7 +305,7 @@ function renderPhotos() {
     openButton.addEventListener("click", (event) => {
       if (event.target.closest("video, iframe")) return;
       if (isVideo && drivePreviewUrl) {
-        openLightbox(index);
+        window.open(driveViewUrl || drivePreviewUrl, "_blank", "noopener,noreferrer");
         return;
       }
       openLightbox(index);
@@ -478,13 +479,14 @@ function openLightbox(index) {
   const isVideo = String(photo.mediaType || photo.mimeType || "").startsWith("video/");
   const driveFileId = photo.storage === "drive" ? (photo.optimizedObjectPath || "") : "";
   const drivePreviewUrl = photo.drivePreviewUrl || (driveFileId ? `https://drive.google.com/file/d/${encodeURIComponent(driveFileId)}/preview` : "");
+  const driveViewUrl = photo.driveViewUrl || (driveFileId ? `https://drive.google.com/file/d/${encodeURIComponent(driveFileId)}/view?usp=sharing` : "");
   const driveThumbnailUrl = photo.driveThumbnailUrl || (driveFileId ? `/api/media-thumbnail/${encodeURIComponent(driveFileId)}` : "");
   const useDrivePreview = isVideo && Boolean(drivePreviewUrl);
   lightboxImage.hidden = isVideo;
   lightboxVideo.hidden = !isVideo || useDrivePreview;
   lightboxDriveVideo.hidden = true;
   lightboxVideoFallback.hidden = !useDrivePreview;
-  lightboxVideoFallback.href = useDrivePreview ? drivePreviewUrl : "#";
+  lightboxVideoFallback.href = useDrivePreview ? (driveViewUrl || drivePreviewUrl) : "#";
   lightboxVideoFallback.textContent = "Pokreni video";
   if (useDrivePreview) {
     lightboxImage.hidden = false;
