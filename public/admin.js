@@ -39,6 +39,13 @@ function openAdminVideo(photo) {
     frame.allow = "autoplay; fullscreen";
     frame.allowFullscreen = true;
     videoViewer.appendChild(frame);
+    const fallback = document.createElement("a");
+    fallback.className = "admin-video-fallback";
+    fallback.href = photo.drivePreviewUrl;
+    fallback.target = "_blank";
+    fallback.rel = "noopener";
+    fallback.textContent = "Ako se video ne pokrene, otvori ga ovdje";
+    videoViewer.appendChild(fallback);
   } else {
     const video = document.createElement("video");
     video.src = photo.optimizedUrl || photo.url;

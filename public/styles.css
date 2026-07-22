@@ -2682,6 +2682,7 @@ body.has-custom-hero .upload-panel::after {
 .admin-video-lightbox[hidden] { display: none; }
 
 .admin-video-viewer {
+  position: relative;
   width: min(980px, 100%);
   height: min(720px, 82vh);
   overflow: hidden;
@@ -2700,6 +2701,23 @@ body.has-custom-hero .upload-panel::after {
   object-fit: contain;
   background: #130e1b;
 }
+
+.admin-video-fallback {
+  position: absolute;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%);
+  z-index: 2;
+  padding: 10px 16px;
+  border: 1px solid rgba(255,255,255,.35);
+  border-radius: 999px;
+  color: #fff;
+  background: rgba(38, 22, 48, .82);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.admin-video-fallback:hover { background: #b34f7d; }
 
 .admin-video-close {
   position: fixed;
