@@ -302,7 +302,7 @@ function renderPhotos() {
     openButton.addEventListener("click", (event) => {
       if (event.target.closest("video, iframe")) return;
       if (isVideo && photo.drivePreviewUrl) {
-        window.open(photo.drivePreviewUrl, "_blank", "noopener,noreferrer");
+        openLightbox(index);
         return;
       }
       openLightbox(index);
@@ -478,11 +478,14 @@ function openLightbox(index) {
   const useDrivePreview = isVideo && Boolean(photo.drivePreviewUrl) && !["video/mp4", "video/webm"].includes(mediaType);
   lightboxImage.hidden = isVideo;
   lightboxVideo.hidden = !isVideo || useDrivePreview;
-  lightboxDriveVideo.hidden = !useDrivePreview;
+  lightboxDriveVideo.hidden = true;
   lightboxVideoFallback.hidden = !useDrivePreview;
   lightboxVideoFallback.href = useDrivePreview ? photo.drivePreviewUrl : "#";
+  lightboxVideoFallback.textContent = "Pokreni video";
   if (useDrivePreview) {
-    lightboxDriveVideo.src = photo.drivePreviewUrl;
+    lightboxImage.hidden = false;
+    lightboxImage.src = photo.driveThumbnailUrl || mediaUrl;
+    lightboxDriveVideo.removeAttribute("src");
     lightboxVideo.removeAttribute("src");
     lightboxVideo.load();
   } else if (isVideo) {
