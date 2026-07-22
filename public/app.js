@@ -28,6 +28,7 @@ const lightbox = document.querySelector("#lightbox");
 const lightboxImage = document.querySelector("#lightbox-image");
 const lightboxVideo = document.querySelector("#lightbox-video");
 const lightboxDriveVideo = document.querySelector("#lightbox-drive-video");
+const lightboxVideoFallback = document.querySelector("#lightbox-video-fallback");
 const lightboxCaption = document.querySelector("#lightbox-caption");
 const lightboxMeta = document.querySelector("#lightbox-meta");
 const lightboxMessage = document.querySelector("#lightbox-message");
@@ -300,6 +301,10 @@ function renderPhotos() {
 
     openButton.addEventListener("click", (event) => {
       if (event.target.closest("video, iframe")) return;
+      if (isVideo && photo.drivePreviewUrl) {
+        window.open(photo.drivePreviewUrl, "_blank", "noopener,noreferrer");
+        return;
+      }
       openLightbox(index);
     });
     openButton.addEventListener("keydown", (event) => {
@@ -474,6 +479,8 @@ function openLightbox(index) {
   lightboxImage.hidden = isVideo;
   lightboxVideo.hidden = !isVideo || useDrivePreview;
   lightboxDriveVideo.hidden = !useDrivePreview;
+  lightboxVideoFallback.hidden = !useDrivePreview;
+  lightboxVideoFallback.href = useDrivePreview ? photo.drivePreviewUrl : "#";
   if (useDrivePreview) {
     lightboxDriveVideo.src = photo.drivePreviewUrl;
     lightboxVideo.removeAttribute("src");
