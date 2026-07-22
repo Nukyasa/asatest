@@ -251,8 +251,11 @@ function renderPhotos() {
 
     const mediaUrl = photo.optimizedUrl || photo.url;
     const isVideo = String(photo.mediaType || photo.mimeType || "").startsWith("video/");
-    const useDrivePreview = isVideo && Boolean(photo.drivePreviewUrl);
-    const useDriveThumbnail = useDrivePreview && Boolean(photo.driveThumbnailUrl);
+    const driveFileId = photo.storage === "drive" ? (photo.optimizedObjectPath || "") : "";
+    const drivePreviewUrl = photo.drivePreviewUrl || (driveFileId ? `https://drive.google.com/file/d/${encodeURIComponent(driveFileId)}/preview` : "");
+    const driveThumbnailUrl = photo.driveThumbnailUrl || (driveFileId ? `/api/media-thumbnail/${encodeURIComponent(driveFileId)}` : "");
+    const useDrivePreview = isVideo && Boolean(drivePreviewUrl);
+    const useDriveThumbnail = isVideo && Boolean(driveThumbnailUrl);
     card.classList.toggle("is-video-card", isVideo);
     card.classList.toggle("uses-drive-thumbnail", useDriveThumbnail);
     videoBadge.hidden = !isVideo;
@@ -261,12 +264,12 @@ function renderPhotos() {
     driveVideo.hidden = !useDrivePreview || useDriveThumbnail;
     if (isVideo) {
       if (useDriveThumbnail) {
-        image.src = photo.driveThumbnailUrl;
+        image.src = driveThumbnailUrl;
       } else if (useDrivePreview) {
-        driveVideo.src = photo.drivePreviewUrl;
+        driveVideo.src = drivePreviewUrl;
       } else {
         video.controls = true;
-        video.poster = photo.driveThumbnailUrl || "";
+        video.poster = driveThumbnailUrl || "";
         video.src = mediaUrl;
         video.addEventListener("click", (event) => event.stopPropagation());
         video.addEventListener("error", () => {
@@ -300,7 +303,7 @@ function renderPhotos() {
 
     openButton.addEventListener("click", (event) => {
       if (event.target.closest("video, iframe")) return;
-      if (isVideo && photo.drivePreviewUrl) {
+      if (isVideo && drivePreviewUrl) {
         openLightbox(index);
         return;
       }
@@ -473,22 +476,25 @@ function openLightbox(index) {
   const photo = visiblePhotos[activeIndex];
   const mediaUrl = photo.optimizedUrl || photo.url;
   const isVideo = String(photo.mediaType || photo.mimeType || "").startsWith("video/");
-  const useDrivePreview = isVideo && Boolean(photo.drivePreviewUrl);
+  const driveFileId = photo.storage === "drive" ? (photo.optimizedObjectPath || "") : "";
+  const drivePreviewUrl = photo.drivePreviewUrl || (driveFileId ? `https://drive.google.com/file/d/${encodeURIComponent(driveFileId)}/preview` : "");
+  const driveThumbnailUrl = photo.driveThumbnailUrl || (driveFileId ? `/api/media-thumbnail/${encodeURIComponent(driveFileId)}` : "");
+  const useDrivePreview = isVideo && Boolean(drivePreviewUrl);
   lightboxImage.hidden = isVideo;
   lightboxVideo.hidden = !isVideo || useDrivePreview;
   lightboxDriveVideo.hidden = true;
   lightboxVideoFallback.hidden = !useDrivePreview;
-  lightboxVideoFallback.href = useDrivePreview ? photo.drivePreviewUrl : "#";
+  lightboxVideoFallback.href = useDrivePreview ? drivePreviewUrl : "#";
   lightboxVideoFallback.textContent = "Pokreni video";
   if (useDrivePreview) {
     lightboxImage.hidden = false;
-    lightboxImage.src = photo.driveThumbnailUrl || mediaUrl;
+    lightboxImage.src = driveThumbnailUrl || mediaUrl;
     lightboxDriveVideo.removeAttribute("src");
     lightboxVideo.removeAttribute("src");
     lightboxVideo.load();
   } else if (isVideo) {
     lightboxDriveVideo.removeAttribute("src");
-    lightboxVideo.poster = photo.driveThumbnailUrl || "";
+    lightboxVideo.poster = driveThumbnailUrl || "";
     lightboxVideo.src = mediaUrl;
     lightboxVideo.load();
     lightboxVideo.currentTime = 0;
