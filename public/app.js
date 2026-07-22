@@ -204,7 +204,7 @@ function clearPreview() {
   previewName.textContent = "Izabrana fotografija ili video";
   previewSize.textContent = "";
   fileInput.value = "";
-  fileLabel.textContent = "Izaberi fotografiju ili video";
+  fileLabel.textContent = "Izaberi fotografije ili videe";
 }
 
 function showPreview(file) {
@@ -281,10 +281,9 @@ function renderPhotos() {
       image.src = mediaUrl;
     }
     image.addEventListener("error", () => {
-      if (useDriveThumbnail && driveVideo && photo.drivePreviewUrl) {
-        image.hidden = true;
-        driveVideo.hidden = false;
-        driveVideo.src = photo.drivePreviewUrl;
+      if (useDriveThumbnail) {
+        image.hidden = false;
+        image.classList.add("thumbnail-unavailable");
         return;
       }
       const fallback = photo.originalUrl || photo.url;
@@ -546,17 +545,21 @@ function startSlideshow() {
 }
 
 fileInput.addEventListener("change", () => {
-  const file = fileInput.files[0];
-  fileLabel.textContent = file ? file.name : "Izaberi fotografiju ili video";
-  if (file && file.size > MAX_UPLOAD_BYTES) {
+  const files = Array.from(fileInput.files);
+  const invalid = files.find((file) => file.size > MAX_UPLOAD_BYTES || (!file.type.startsWith("image/") && !file.type.startsWith("video/")));
+  fileLabel.textContent = files.length === 1 ? files[0].name : files.length ? `${files.length} fajlova izabrano` : "Izaberi fotografije ili videe";
+  if (invalid && invalid.size > MAX_UPLOAD_BYTES) {
     clearPreview();
     statusEl.textContent = "Slika je prevelika. Maksimalno je 60 MB.";
-  } else if (file && (file.type.startsWith("image/") || file.type.startsWith("video/"))) {
+  } else if (invalid) {
+    clearPreview();
+    statusEl.textContent = "Izaberi samo slike ili video fajlove.";
+  } else if (files.length) {
     statusEl.textContent = "";
-    showPreview(file);
+    showPreview(files[0]);
+    if (files.length > 1) previewName.textContent = `${files[0].name} + još ${files.length - 1} fajlova`;
   } else {
     clearPreview();
-    if (file) statusEl.textContent = "Izaberi sliku ili video fajl.";
   }
 });
 
@@ -620,32 +623,82 @@ filterButtons.forEach((button) => {
   });
 });
 
+async function uploadBatch(files) {
+  submitButton.disabled = true;
+  uploadProgress.hidden = false;
+  progressCopy.hidden = false;
+  let uploadedCount = 0;
+  try {
+    for (const originalFile of files) {
+      const formData = new FormData(form);
+      const hash = await fileHash(originalFile);
+      const optimizedFile = await optimizeImage(originalFile);
+      formData.set("photo", optimizedFile, optimizedFile.name);
+      formData.set("originalPhoto", originalFile, originalFile.name);
+      formData.set("originalHash", hash);
+      submitButton.textContent = `Slanje ${uploadedCount + 1}/${files.length}...`;
+      progressCopy.textContent = `${originalFile.type.startsWith("video/") ? "Video" : "Slika"} ${uploadedCount + 1} od ${files.length}`;
+      await uploadWithProgress(formData);
+      uploadedCount += 1;
+      lastUploadHash = hash;
+      lastUploadAt = Date.now();
+    }
+    form.reset();
+    clearPreview();
+    uploadProgressBar.style.width = "100%";
+    progressCopy.textContent = "Slanje završeno.";
+    statusEl.textContent = `${uploadedCount} fajlova je dodano u galeriju.`;
+    statusEl.classList.add("is-success");
+    successCelebration.hidden = false;
+    burstConfetti(form);
+    window.setTimeout(() => { successCelebration.hidden = true; }, 2200);
+    await Promise.all([loadPhotos(), loadUploadStatus()]);
+  } catch (error) {
+    statusEl.textContent = friendlyUploadError(error);
+    await loadUploadStatus().catch(() => {});
+  } finally {
+    submitButton.disabled = uploadStatus.remaining <= 0;
+    submitButton.textContent = "Pošalji u galeriju";
+    setTimeout(() => {
+      uploadProgress.hidden = true;
+      uploadProgressBar.style.width = "0%";
+      progressCopy.hidden = true;
+    }, 1000);
+  }
+}
+
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
   statusEl.textContent = "";
   statusEl.classList.remove("is-success");
   successCelebration.hidden = true;
 
-  if (!fileInput.files.length) {
+  const files = Array.from(fileInput.files);
+  if (!files.length) {
     statusEl.textContent = "Prvo izaberi sliku ili video.";
     return;
   }
-  if (uploadStatus.remaining <= 0) {
+  if (files.length > uploadStatus.remaining) {
     statusEl.textContent = `Dosegli ste limit od ${uploadStatus.maxUploadsPerDevice} fajlova sa ovog uređaja.`;
     return;
   }
 
-  const formData = new FormData(form);
-  const originalFile = fileInput.files[0];
-  if (!originalFile.type.startsWith("image/") && !originalFile.type.startsWith("video/")) {
+  const originalFile = files[0];
+  if (files.some((file) => !file.type.startsWith("image/") && !file.type.startsWith("video/"))) {
     statusEl.textContent = "Izaberi sliku ili video fajl.";
     return;
   }
-  if (originalFile.size > MAX_UPLOAD_BYTES) {
+  if (files.some((file) => file.size > MAX_UPLOAD_BYTES)) {
     statusEl.textContent = "Fajl je prevelik. Maksimalno je 60 MB.";
     return;
   }
 
+  if (files.length > 1) {
+    await uploadBatch(files);
+    return;
+  }
+
+  const formData = new FormData(form);
   submitButton.disabled = true;
   uploadProgress.hidden = false;
   uploadProgressBar.style.width = "4%";
