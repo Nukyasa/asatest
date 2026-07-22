@@ -251,17 +251,18 @@ function renderPhotos() {
 
     const mediaUrl = photo.optimizedUrl || photo.url;
     const isVideo = String(photo.mediaType || photo.mimeType || "").startsWith("video/");
+    const mediaType = String(photo.mediaType || photo.mimeType || "").toLowerCase();
     const driveFileId = photo.storage === "drive" ? (photo.optimizedObjectPath || "") : "";
     const drivePreviewUrl = photo.drivePreviewUrl || (driveFileId ? `https://drive.google.com/file/d/${encodeURIComponent(driveFileId)}/preview` : "");
     const driveViewUrl = photo.driveViewUrl || (driveFileId ? `https://drive.google.com/file/d/${encodeURIComponent(driveFileId)}/view?usp=sharing` : "");
     const driveThumbnailUrl = photo.driveThumbnailUrl || (driveFileId ? `/api/media-thumbnail/${encodeURIComponent(driveFileId)}` : "");
-    const useDrivePreview = isVideo && Boolean(drivePreviewUrl);
+    const useDrivePreview = isVideo && Boolean(drivePreviewUrl) && mediaType !== "video/mp4";
     const useDriveThumbnail = isVideo && Boolean(driveThumbnailUrl);
     card.classList.toggle("is-video-card", isVideo);
     card.classList.toggle("uses-drive-thumbnail", useDriveThumbnail);
     videoBadge.hidden = !isVideo;
     image.hidden = isVideo && !useDriveThumbnail;
-    video.hidden = !isVideo || useDrivePreview;
+    video.hidden = !isVideo || useDrivePreview || useDriveThumbnail;
     driveVideo.hidden = !useDrivePreview || useDriveThumbnail;
     if (isVideo) {
       if (useDriveThumbnail) {
@@ -304,7 +305,7 @@ function renderPhotos() {
 
     openButton.addEventListener("click", (event) => {
       if (event.target.closest("video, iframe")) return;
-      if (isVideo && drivePreviewUrl) {
+      if (isVideo && drivePreviewUrl && mediaType !== "video/mp4") {
         window.open(driveViewUrl || drivePreviewUrl, "_blank", "noopener,noreferrer");
         return;
       }
@@ -477,11 +478,12 @@ function openLightbox(index) {
   const photo = visiblePhotos[activeIndex];
   const mediaUrl = photo.optimizedUrl || photo.url;
   const isVideo = String(photo.mediaType || photo.mimeType || "").startsWith("video/");
+  const mediaType = String(photo.mediaType || photo.mimeType || "").toLowerCase();
   const driveFileId = photo.storage === "drive" ? (photo.optimizedObjectPath || "") : "";
   const drivePreviewUrl = photo.drivePreviewUrl || (driveFileId ? `https://drive.google.com/file/d/${encodeURIComponent(driveFileId)}/preview` : "");
   const driveViewUrl = photo.driveViewUrl || (driveFileId ? `https://drive.google.com/file/d/${encodeURIComponent(driveFileId)}/view?usp=sharing` : "");
   const driveThumbnailUrl = photo.driveThumbnailUrl || (driveFileId ? `/api/media-thumbnail/${encodeURIComponent(driveFileId)}` : "");
-  const useDrivePreview = isVideo && Boolean(drivePreviewUrl);
+  const useDrivePreview = isVideo && Boolean(drivePreviewUrl) && mediaType !== "video/mp4";
   lightboxImage.hidden = isVideo;
   lightboxVideo.hidden = !isVideo || useDrivePreview;
   lightboxDriveVideo.hidden = true;
